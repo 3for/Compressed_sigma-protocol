@@ -1,0 +1,21 @@
+[package]
+name = "Compressed_sigma-protocol"
+version = "0.1.0"
+authors = ["root <287494524@qq.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+curve25519-dalek = { version = "3.0.2", features = ["serde"]}
+merlin = "2.0.0"
+rand = "0.8.1"
+digest = "0.8.1"
+sha3 = "0.8.2"
+serde = { version = "1.0.118", features = ["derive"] }
+subtle = { version = "^2.4.0", default-features = false }
+rand_core = { version = "0.6", default-features = false }
+zeroize = { version = "1.2", default-features = false }
+thiserror = "1.0"
+
+
