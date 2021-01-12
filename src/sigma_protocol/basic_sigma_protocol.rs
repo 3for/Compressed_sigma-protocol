@@ -7,13 +7,13 @@ use super::super::commitments::{Commitments, MultiCommitGens};
 use super::super::errors::ProofVerifyError;
 use serde::{Deserialize, Serialize};
 
-//basic sigma protocol: $\Pi_0$-protocol
+// Protocol 2 in the paper: basic sigma protocol $\Pi_0$-protocol
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Basic_Pi_0_Proof {
   A: CompressedGroup,
   z: Vec<Scalar>,
-  y_p: Scalar, // y'
-  blind_z: Scalar,
+  t: Scalar, // L(\vec{r})
+  phi: Scalar,
 }
 
 impl Basic_Pi_0_Proof {
@@ -33,7 +33,7 @@ impl Basic_Pi_0_Proof {
     transcript: &mut Transcript,
     random_tape: &mut RandomTape,
     x_vec: &[Scalar],
-    blind_x: &Scalar,
+    gamma: &Scalar,
     a_vec: &[Scalar],
   ) -> (Basic_Pi_0_Proof, CompressedGroup, Scalar) {
     transcript.append_protocol_name(Basic_Pi_0_Proof::protocol_name());
@@ -45,20 +45,19 @@ impl Basic_Pi_0_Proof {
 
     // produce randomness for the proofs
     let r_vec = random_tape.random_vector(b"r_vec", n);
-    let blind_r = random_tape.random_scalar(b"blind_r");
-    //let r_beta = random_tape.random_scalar(b"r_beta");
-
-    let Cx = x_vec.commit(&blind_x, gens_n).compress();
-    Cx.append_to_transcript(b"Cx", transcript);
+    let rho = random_tape.random_scalar(b"rho");
+    
+    let P = x_vec.commit(&gamma, gens_n).compress();
+    P.append_to_transcript(b"P", transcript);
 
     let y = Basic_Pi_0_Proof::compute_linearform(&a_vec, &x_vec);
     y.append_to_transcript(b"y", transcript);
 
-    let A = r_vec.commit(&blind_r, gens_n).compress();
+    let A = r_vec.commit(&rho, gens_n).compress();
     A.append_to_transcript(b"A", transcript);
 
-    let y_p = Basic_Pi_0_Proof::compute_linearform(&a_vec, &r_vec);
-    y_p.append_to_transcript(b"y_p", transcript);
+    let t = Basic_Pi_0_Proof::compute_linearform(&a_vec, &r_vec);
+    t.append_to_transcript(b"t", transcript);
 
     let c = transcript.challenge_scalar(b"c");
 
@@ -66,16 +65,16 @@ impl Basic_Pi_0_Proof {
       .map(|i| c * x_vec[i] + r_vec[i])
       .collect::<Vec<Scalar>>();
 
-    let blind_z = c * blind_x + blind_r;
+    let phi = c * gamma + rho;
 
     (
       Basic_Pi_0_Proof {
         A,
         z,
-        y_p,
-        blind_z,
+        t,
+        phi,
       },
-      Cx,
+      P,
       y,
     )
   }
@@ -86,25 +85,25 @@ impl Basic_Pi_0_Proof {
     gens_n: &MultiCommitGens,
     transcript: &mut Transcript,
     a: &[Scalar],
-    Cx: &CompressedGroup,
+    P: &CompressedGroup,
     y: &Scalar,
   ) -> Result<(), ProofVerifyError> {
     assert_eq!(gens_n.n, a.len());
     assert_eq!(gens_1.n, 1);
 
     transcript.append_protocol_name(Basic_Pi_0_Proof::protocol_name());
-    Cx.append_to_transcript(b"Cx", transcript);
+    P.append_to_transcript(b"P", transcript);
     y.append_to_transcript(b"y", transcript);
     self.A.append_to_transcript(b"A", transcript);
-    self.y_p.append_to_transcript(b"y_p", transcript);
+    self.t.append_to_transcript(b"t", transcript);
 
     let c = transcript.challenge_scalar(b"c");
 
     let mut result =
-      c * Cx.unpack()? + self.A.unpack()? == self.z.commit(&self.blind_z, gens_n);
+      c * P.unpack()? + self.A.unpack()? == self.z.commit(&self.phi, gens_n);
 
     let l_z = Basic_Pi_0_Proof::compute_linearform(&self.z, &a);
-    result &= c * y + self.y_p == l_z;
+    result &= c * y + self.t == l_z;
 
     if result {
       Ok(())
@@ -139,7 +138,7 @@ mod tests {
     
     let mut random_tape = RandomTape::new(b"proof");
     let mut prover_transcript = Transcript::new(b"example");
-    let (proof, Cx, y) = Basic_Pi_0_Proof::prove(
+    let (proof, P, y) = Basic_Pi_0_Proof::prove(
       &gens_1,
       &gens_1024,
       &mut prover_transcript,
@@ -151,7 +150,7 @@ mod tests {
     
     let mut verifier_transcript = Transcript::new(b"example");
     assert!(proof
-      .verify(&gens_1, &gens_1024, &mut verifier_transcript, &a, &Cx, &y)
+      .verify(&gens_1, &gens_1024, &mut verifier_transcript, &a, &P, &y)
       .is_ok());
   }
 
