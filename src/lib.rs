@@ -15,9 +15,11 @@ mod errors;
 mod group;
 mod random;
 mod transcript;
+mod math;
 
 mod scalar;
 mod sigma_protocol;
+mod nizk;
 
 
 
