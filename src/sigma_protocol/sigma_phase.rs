@@ -4,14 +4,7 @@ use super::super::group::{CompressedGroup, CompressedGroupExt, GroupElement, Var
 use merlin::Transcript;
 use super::super::random::RandomTape;
 use super::super::commitments::{Commitments, MultiCommitGens};
-
-
-// compute linear form $y=L(\vec{x})$
-pub fn compute_linearform(a: &[Scalar], b: &[Scalar]) -> Scalar {
-  assert_eq!(a.len(), b.len());
-  (0..a.len()).map(|i| a[i] * b[i]).sum()
-}
-
+use super::scalar_math;
 
 pub fn commit_phase(
   gens_1: &MultiCommitGens,
@@ -31,7 +24,7 @@ pub fn commit_phase(
   let A = r_vec.commit(&rho, gens_n).compress();
   A.append_to_transcript(b"A", transcript);
 
-  let t = compute_linearform(&a_vec, &r_vec);
+  let t = scalar_math::compute_linearform(&a_vec, &r_vec);
   t.append_to_transcript(b"t", transcript);
 
 
@@ -72,3 +65,33 @@ pub fn response_phase(
   )
 }
 
+
+pub fn batch_response_phase(
+  challenge_vec: &[Scalar],
+  blind_x_vec: &[Scalar],
+  blind_r: &Scalar,
+  x_matrix: &Vec<Vec<Scalar>>,
+  r_vec: &[Scalar],
+) -> (Vec<Scalar>, Scalar) {
+  assert_eq!(x_matrix.len(), blind_x_vec.len());
+  assert_eq!(x_matrix.len(), challenge_vec.len());
+
+  let s = x_matrix.len();
+  let mut tmp_matrix: Vec<Vec<Scalar>> = Vec::new();
+ 
+  let x_matrix_t = scalar_math::matrix_transpose(&x_matrix);
+  let z_vec = scalar_math::matrix_vector_mul(&x_matrix_t, &challenge_vec);
+  let z = scalar_math::row_row_add(&z_vec, &r_vec);
+
+  println!("zyd z:{:?}", z);
+
+  let phi = challenge_vec.iter()
+                            .zip(blind_x_vec.iter())
+                            .map(|(challenge, blind_x)|  challenge * blind_x + blind_r)
+                            .sum();
+
+  (
+    z,
+    phi
+  )
+}
