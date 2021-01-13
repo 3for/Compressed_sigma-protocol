@@ -447,7 +447,7 @@ impl DotProductProofLog {
 
     let n = x_vec.len();
     assert_eq!(x_vec.len(), a_vec.len());
-    assert!(gens.n >= n);
+    assert_eq!(gens.n, n);
 
     // produce randomness for generating a proof
     let d = random_tape.random_scalar(b"d");
@@ -467,19 +467,12 @@ impl DotProductProofLog {
     let Cy = y.commit(&blind_y, &gens.gens_1).compress();
     Cy.append_to_transcript(b"Cy", transcript);
 
-    let (G1, _G2) = gens.gens_n.G.split_at(n);
-    let gens_n_balanced =  MultiCommitGens {
-      n: G1.len(),
-      G: G1.to_vec(),
-      h: gens.gens_n.h,
-    };
-
     let blind_Gamma = blind_x + blind_y;
     let (bullet_reduction_proof, _Gamma_hat, x_hat, a_hat, g_hat, rhat_Gamma) =
       BulletReductionProof::prove(
         transcript,
         &gens.gens_1.G[0],
-        &gens_n_balanced.G,
+        &gens.gens_n.G,
         &gens.gens_n.h,
         x_vec,
         a_vec,
@@ -537,18 +530,10 @@ impl DotProductProofLog {
 
     let Gamma = Cx.unpack()? + Cy.unpack()?;
 
-    let (G1, _G2) = gens.gens_n.G.split_at(n);
-    let gens_n_balanced =  MultiCommitGens {
-      n: G1.len(),
-      G: G1.to_vec(),
-      h: gens.gens_n.h,
-    };
-
-
     let (g_hat, Gamma_hat, a_hat) =
       self
         .bullet_reduction_proof
-        .verify(n, a, transcript, &Gamma, &gens_n_balanced.G)?;
+        .verify(n, a, transcript, &Gamma, &gens.gens_n.G)?;
     self.delta.append_to_transcript(b"delta", transcript);
     self.beta.append_to_transcript(b"beta", transcript);
 

@@ -71,26 +71,14 @@ impl Commitments for Scalar {
 
 impl Commitments for Vec<Scalar> {
   fn commit(&self, blind: &Scalar, gens_n: &MultiCommitGens) -> GroupElement {
-    assert!(gens_n.n >= self.len());
-    let (G1, _G2) = gens_n.G.split_at(self.len());
-    let gens_n_balanced =  MultiCommitGens {
-      n: G1.len(),
-      G: G1.to_vec(),
-      h: gens_n.h,
-    };
-    GroupElement::vartime_multiscalar_mul(self, &gens_n_balanced.G) + blind * gens_n.h
+    assert_eq!(gens_n.n, self.len());
+    GroupElement::vartime_multiscalar_mul(self, &gens_n.G) + blind * gens_n.h
   }
 }
 
 impl Commitments for [Scalar] {
   fn commit(&self, blind: &Scalar, gens_n: &MultiCommitGens) -> GroupElement {
-    assert!(gens_n.n >= self.len());
-    let (G1, _G2) = gens_n.G.split_at(self.len());
-    let gens_n_balanced =  MultiCommitGens {
-      n: G1.len(),
-      G: G1.to_vec(),
-      h: gens_n.h,
-    };
-    GroupElement::vartime_multiscalar_mul(self, &gens_n_balanced.G) + blind * gens_n.h
+    assert_eq!(gens_n.n, self.len());
+    GroupElement::vartime_multiscalar_mul(self, &gens_n.G) + blind * gens_n.h
   }
 }
