@@ -6,6 +6,7 @@ use super::super::random::RandomTape;
 use super::super::commitments::{Commitments, MultiCommitGens};
 use super::super::errors::ProofVerifyError;
 use serde::{Deserialize, Serialize};
+use super::sigma_phase;
 
 // Protocol 2 in the paper: basic sigma protocol $\Pi_0$-protocol
 #[derive(Debug, Serialize, Deserialize)]
@@ -42,10 +43,6 @@ impl Basic_Pi_0_Proof {
     assert_eq!(x_vec.len(), a_vec.len());
     assert_eq!(gens_n.n, a_vec.len());
     assert_eq!(gens_1.n, 1);
-
-    // produce randomness for the proofs
-    let r_vec = random_tape.random_vector(b"r_vec", n);
-    let rho = random_tape.random_scalar(b"rho");
     
     let P = x_vec.commit(&gamma, gens_n).compress();
     P.append_to_transcript(b"P", transcript);
@@ -53,19 +50,17 @@ impl Basic_Pi_0_Proof {
     let y = Basic_Pi_0_Proof::compute_linearform(&a_vec, &x_vec);
     y.append_to_transcript(b"y", transcript);
 
-    let A = r_vec.commit(&rho, gens_n).compress();
-    A.append_to_transcript(b"A", transcript);
+    let (r_vec, rho, A, t) = sigma_phase::commit_phase( 
+      &gens_1,
+      &gens_n,
+      transcript,
+      random_tape,
+      &a_vec,
+    );
+    
+    let c = sigma_phase::challenge_phase(transcript);
 
-    let t = Basic_Pi_0_Proof::compute_linearform(&a_vec, &r_vec);
-    t.append_to_transcript(b"t", transcript);
-
-    let c = transcript.challenge_scalar(b"c");
-
-    let z = (0..r_vec.len())
-      .map(|i| c * x_vec[i] + r_vec[i])
-      .collect::<Vec<Scalar>>();
-
-    let phi = c * gamma + rho;
+    let (z, phi) = sigma_phase::response_phase(&c, &gamma, &rho, &x_vec, &r_vec);
 
     (
       Basic_Pi_0_Proof {
