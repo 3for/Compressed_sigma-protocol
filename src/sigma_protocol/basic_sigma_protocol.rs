@@ -101,6 +101,7 @@ impl Basic_Pi_0_Proof {
     let s = x_matrix.len();
     
     let c = sigma_phase::challenge_phase(transcript);
+    //let c = Scalar::one();
     let c_vec = scalar_math::vandemonde_challenge(c, s);
 
     let (z, phi) = sigma_phase::batch_response_phase(&c_vec, &gamma_vec, &rho, &x_matrix, &r_vec);
@@ -174,6 +175,7 @@ impl Basic_Pi_0_Proof {
 
     let s = y_vec.len();
     let c = transcript.challenge_scalar(b"c");
+    //let c = Scalar::one();
     let c_vec = scalar_math::vandemonde_challenge(c, s);
 
     let mut result = false;
@@ -190,7 +192,7 @@ impl Basic_Pi_0_Proof {
         c_vec.clone(),
         P_depressed_vec,
       ) + self.A.unpack()? == self.z.commit(&self.phi, gens_n);
-    println!("zyd 555");
+    println!("zyd 555, result:{:?}", result);
 
     let l_z = scalar_math::compute_linearform(&self.z, &a);
     result &= scalar_math::compute_linearform(
@@ -284,9 +286,9 @@ mod tests {
     );
     
     let mut verifier_transcript = Transcript::new(b"example");
-    /*assert!(proof
+    assert!(proof
       .amortized_verify(&gens_1, &gens_1024, &mut verifier_transcript, &a, &P, &y)
-      .is_ok());*/
+      .is_ok());
   }
 
 }
