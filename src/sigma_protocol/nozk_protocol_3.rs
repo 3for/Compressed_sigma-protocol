@@ -12,11 +12,11 @@ use super::scalar_math;
 // Protocol 3 in the paper: compressed basic sigma protocol $\Pi_1$-protocol
 #[derive(Debug, Serialize, Deserialize)]
 #[allow(non_camel_case_types)]
-pub struct Compressed_Basic_Pi_1_Proof {
+pub struct Nozk_Protocol_3_Proof {
   z: Vec<Scalar>,
 }
 
-impl Compressed_Basic_Pi_1_Proof {
+impl Nozk_Protocol_3_Proof {
   fn protocol_name() -> &'static [u8] {
     b"compressed basic pi_1 proof"
   }
@@ -30,8 +30,8 @@ impl Compressed_Basic_Pi_1_Proof {
     z_vec: &[Scalar],
     phi: &Scalar,
     L_hat: &[Scalar],
-  ) -> (Compressed_Basic_Pi_1_Proof, CompressedGroup, Scalar) {
-    transcript.append_protocol_name(Compressed_Basic_Pi_1_Proof::protocol_name());
+  ) -> (Nozk_Protocol_3_Proof, CompressedGroup, Scalar) {
+    transcript.append_protocol_name(Nozk_Protocol_3_Proof::protocol_name());
 
     let P_hat = z_vec.commit(&phi, gens_n).compress();
     P_hat.append_to_transcript(b"P_hat", transcript);
@@ -46,7 +46,7 @@ impl Compressed_Basic_Pi_1_Proof {
     let c_1 = sigma_phase::challenge_phase(transcript);
 
     (
-      Compressed_Basic_Pi_1_Proof {
+      Nozk_Protocol_3_Proof {
         z: z_hat,
       },
       P_hat,
@@ -68,7 +68,7 @@ impl Compressed_Basic_Pi_1_Proof {
     assert_eq!(gens_n.n+1, L_hat.len());
     assert_eq!(gens_1.n, 1);
 
-    transcript.append_protocol_name(Compressed_Basic_Pi_1_Proof::protocol_name());
+    transcript.append_protocol_name(Nozk_Protocol_3_Proof::protocol_name());
     P_hat.append_to_transcript(b"P_hat", transcript);
     y_hat.append_to_transcript(b"y_hat", transcript);
     
@@ -77,7 +77,6 @@ impl Compressed_Basic_Pi_1_Proof {
     match P_hat.unpack() {
       Ok(P) => {
         result = P + (c_1 * y_hat) * gens_1.G[0] == self.z[..self.z.len()-1].commit(&self.z[self.z.len()-1], gens_n) + c_1 * scalar_math::compute_linearform(&L_hat, &self.z) * gens_1.G[0];
-        println!("zyd result:{:?}", result);
         if result {
           return Ok(())
         } else {
@@ -97,7 +96,7 @@ mod tests {
   use super::*;
   use rand::rngs::OsRng;
   #[test]
-  fn check_compressed_basic_pi_1_proof() {
+  fn check_nozk_protocol_3_proof() {
     let mut csprng: OsRng = OsRng;
 
     let n = 1024;
@@ -105,27 +104,27 @@ mod tests {
     let gens_1 = MultiCommitGens::new(1, b"test-two"); //[k,k_h]
     let gens_1024 = MultiCommitGens::new(n, b"test-1024"); //[vec{g},h]
 
-    let mut x: Vec<Scalar> = Vec::new();
+    let mut z: Vec<Scalar> = Vec::new();
     let mut a: Vec<Scalar> = Vec::new();
     for _ in 0..n {
-      x.push(Scalar::random(&mut csprng));
+      z.push(Scalar::random(&mut csprng));
       a.push(Scalar::random(&mut csprng));
     }
 
-    let r_x = Scalar::random(&mut csprng);
+    let r_z = Scalar::random(&mut csprng);
     
     let mut L_hat = a.clone().to_vec();
     L_hat.push(Scalar::zero());
 
     let mut random_tape = RandomTape::new(b"proof");
     let mut prover_transcript = Transcript::new(b"example");
-    let (proof_1, P_1, y_1) = Compressed_Basic_Pi_1_Proof::nozk_prove(
+    let (proof_1, P_1, y_1) = Nozk_Protocol_3_Proof::nozk_prove(
       &gens_1,
       &gens_1024,
       &mut prover_transcript,
       &mut random_tape,
-      &x,
-      &r_x,
+      &z,
+      &r_z,
       &L_hat,
     );
 
