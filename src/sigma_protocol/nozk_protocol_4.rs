@@ -8,6 +8,7 @@ use super::super::errors::ProofVerifyError;
 use serde::{Deserialize, Serialize};
 use super::sigma_phase;
 use super::scalar_math;
+use super::super::nizk::*;
 
 // Protocol 4 in the paper: Compressed Proof of Knowledge $\Pi_2$ for $R_2$
 #[derive(Debug, Serialize, Deserialize)]
