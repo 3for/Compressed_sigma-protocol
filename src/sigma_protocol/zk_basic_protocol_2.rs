@@ -12,14 +12,14 @@ use super::scalar_math;
 // Protocol 2 in the paper: basic sigma protocol $\Pi_0$-protocol
 #[derive(Debug, Serialize, Deserialize)]
 #[allow(non_camel_case_types)]
-pub struct Basic_Protocol_2_Proof {
+pub struct Pi_0_Proof {
   pub A: CompressedGroup,
   pub z: Vec<Scalar>,
   pub t: Scalar, // L(\vec{r})
   pub phi: Scalar,
 }
 
-impl Basic_Protocol_2_Proof {
+impl Pi_0_Proof {
   fn protocol_name() -> &'static [u8] {
     b"basic pi_0 proof"
   }
@@ -32,8 +32,8 @@ impl Basic_Protocol_2_Proof {
     x_vec: &[Scalar],
     gamma: &Scalar,
     a_vec: &[Scalar],
-  ) -> (Basic_Protocol_2_Proof, CompressedGroup, Scalar) {
-    transcript.append_protocol_name(Basic_Protocol_2_Proof::protocol_name());
+  ) -> (Pi_0_Proof, CompressedGroup, Scalar) {
+    transcript.append_protocol_name(Pi_0_Proof::protocol_name());
     
     let P = x_vec.commit(&gamma, gens_n).compress();
     P.append_to_transcript(b"P", transcript);
@@ -54,7 +54,7 @@ impl Basic_Protocol_2_Proof {
     let (z, phi) = sigma_phase::response_phase(&c, &gamma, &rho, &x_vec, &r_vec);
 
     (
-      Basic_Protocol_2_Proof {
+      Pi_0_Proof {
         A,
         z,
         t,
@@ -79,7 +79,7 @@ impl Basic_Protocol_2_Proof {
     assert_eq!(gens_n.n, a.len());
     assert_eq!(gens_1.n, 1);
 
-    transcript.append_protocol_name(Basic_Protocol_2_Proof::protocol_name());
+    transcript.append_protocol_name(Pi_0_Proof::protocol_name());
     P.append_to_transcript(b"P", transcript);
     y.append_to_transcript(b"y", transcript);
     self.A.append_to_transcript(b"A", transcript);
@@ -107,7 +107,7 @@ mod tests {
   use super::*;
   use rand::rngs::OsRng;
   #[test]
-  fn check_basic_protocol_2_proof() {
+  fn check_pi_0_proof() {
     let mut csprng: OsRng = OsRng;
 
     let n = 1024;
@@ -126,7 +126,7 @@ mod tests {
     
     let mut random_tape = RandomTape::new(b"proof");
     let mut prover_transcript = Transcript::new(b"example");
-    let (proof, P, y) = Basic_Protocol_2_Proof::prove(
+    let (proof, P, y) = Pi_0_Proof::prove(
       &gens_1,
       &gens_1024,
       &mut prover_transcript,

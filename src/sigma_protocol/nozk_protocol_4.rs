@@ -9,16 +9,16 @@ use serde::{Deserialize, Serialize};
 use super::sigma_phase;
 use super::scalar_math;
 
-// Protocol 3 in the paper: Argument of Knowledge $\Pi_1$ for $R_1$
+// Protocol 4 in the paper: Compressed Proof of Knowledge $\Pi_2$ for $R_2$
 #[derive(Debug, Serialize, Deserialize)]
 #[allow(non_camel_case_types)]
-pub struct Pi_1_Proof {
+pub struct Pi_2_Proof {
   z: Vec<Scalar>,
 }
 
-impl Pi_1_Proof {
+impl Pi_2_Proof {
   fn protocol_name() -> &'static [u8] {
-    b"nozk pi_1 proof"
+    b"nozk compressed pi_2 proof"
   }
 
   // non zeroknowledge, finally expose z_hat=[z_vec,phi] to Verifier.
@@ -30,8 +30,8 @@ impl Pi_1_Proof {
     z_vec: &[Scalar],
     phi: &Scalar,
     L_hat: &[Scalar],
-  ) -> (Pi_1_Proof, CompressedGroup, Scalar) {
-    transcript.append_protocol_name(Pi_1_Proof::protocol_name());
+  ) -> (Pi_2_Proof, CompressedGroup, Scalar) {
+    transcript.append_protocol_name(Pi_2_Proof::protocol_name());
 
     let P_hat = z_vec.commit(&phi, gens_n).compress();
     P_hat.append_to_transcript(b"P_hat", transcript);
@@ -46,7 +46,7 @@ impl Pi_1_Proof {
     let c_1 = sigma_phase::challenge_phase(transcript);
 
     (
-      Pi_1_Proof {
+      Pi_2_Proof {
         z: z_hat,
       },
       P_hat,
@@ -68,7 +68,7 @@ impl Pi_1_Proof {
     assert_eq!(gens_n.n+1, L_hat.len());
     assert_eq!(gens_1.n, 1);
 
-    transcript.append_protocol_name(Pi_1_Proof::protocol_name());
+    transcript.append_protocol_name(Pi_2_Proof::protocol_name());
     P_hat.append_to_transcript(b"P_hat", transcript);
     y_hat.append_to_transcript(b"y_hat", transcript);
     
@@ -96,7 +96,7 @@ mod tests {
   use super::*;
   use rand::rngs::OsRng;
   #[test]
-  fn check_pi_1_proof() {
+  fn check_pi_2_proof() {
     let mut csprng: OsRng = OsRng;
 
     let n = 1024;
@@ -118,7 +118,7 @@ mod tests {
 
     let mut random_tape = RandomTape::new(b"proof");
     let mut prover_transcript = Transcript::new(b"example");
-    let (proof_1, P_1, y_1) = Pi_1_Proof::nozk_prove(
+    let (proof_1, P_1, y_1) = Nozk_Protocol_3_Proof::nozk_prove(
       &gens_1,
       &gens_1024,
       &mut prover_transcript,

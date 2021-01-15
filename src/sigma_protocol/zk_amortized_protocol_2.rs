@@ -14,14 +14,14 @@ use super::scalar_math;
 // same linear form
 #[derive(Debug, Serialize, Deserialize)]
 #[allow(non_camel_case_types)]
-pub struct Amortized_Basic_Pi_0_Proof {
+pub struct Pi_0_Am_Proof {
   A: CompressedGroup,
   z: Vec<Scalar>,
   t: Scalar, // L(\vec{r})
   phi: Scalar,
 }
 
-impl Amortized_Basic_Pi_0_Proof {
+impl Pi_0_Am_Proof {
   fn protocol_name() -> &'static [u8] {
     b"amortized basic pi_0 proof"
   }
@@ -35,8 +35,8 @@ impl Amortized_Basic_Pi_0_Proof {
     x_matrix: &Vec<Vec<Scalar>>,
     gamma_vec: &[Scalar],
     a_vec: &[Scalar], //same linear form
-  ) -> (Amortized_Basic_Pi_0_Proof, Vec<CompressedGroup>, Vec<Scalar>) {
-    transcript.append_protocol_name(Amortized_Basic_Pi_0_Proof::protocol_name());
+  ) -> (Pi_0_Am_Proof, Vec<CompressedGroup>, Vec<Scalar>) {
+    transcript.append_protocol_name(Pi_0_Am_Proof::protocol_name());
 
     assert_eq!(x_matrix.len(), gamma_vec.len());
     let s = x_matrix.len();
@@ -67,7 +67,7 @@ impl Amortized_Basic_Pi_0_Proof {
 
     let (z, phi) = sigma_phase::batch_response_phase(&c_vec, &gamma_vec, &rho, &x_matrix, &r_vec);
     (
-      Amortized_Basic_Pi_0_Proof {
+      Pi_0_Am_Proof {
         A,
         z,
         t,
@@ -91,7 +91,7 @@ impl Amortized_Basic_Pi_0_Proof {
     assert_eq!(gens_1.n, 1);
     assert_eq!(P_vec.len(), y_vec.len());
 
-    transcript.append_protocol_name(Amortized_Basic_Pi_0_Proof::protocol_name());
+    transcript.append_protocol_name(Pi_0_Am_Proof::protocol_name());
 
     let s = y_vec.len();
     for i in 0..s {
@@ -140,7 +140,7 @@ mod tests {
   use rand::rngs::OsRng;
 
    #[test]
-  fn check_amortized_pi_0_Am_proof() {
+  fn check_pi_0_Am_proof() {
     let mut csprng: OsRng = OsRng;
 
     let n = 512;
@@ -164,7 +164,7 @@ mod tests {
     
     let mut random_tape = RandomTape::new(b"proof");
     let mut prover_transcript = Transcript::new(b"example");
-    let (proof, P, y) = Amortized_Basic_Pi_0_Proof::amortized_prove(
+    let (proof, P, y) = Pi_0_Am_Proof::amortized_prove(
       &gens_1,
       &gens_1024,
       &mut prover_transcript,
