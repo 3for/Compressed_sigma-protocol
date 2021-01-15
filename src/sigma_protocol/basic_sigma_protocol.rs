@@ -64,58 +64,7 @@ impl Basic_Pi_0_Proof {
     )
   }
 
-  // For amortized basic protocol: $\Pi_0^{Am}$
-  pub fn amortized_prove(
-    gens_1: &MultiCommitGens,
-    gens_n: &MultiCommitGens,
-    transcript: &mut Transcript,
-    random_tape: &mut RandomTape,
-    x_matrix: &Vec<Vec<Scalar>>,
-    gamma_vec: &[Scalar],
-    a_vec: &[Scalar], //same linear form
-  ) -> (Basic_Pi_0_Proof, Vec<CompressedGroup>, Vec<Scalar>) {
-    transcript.append_protocol_name(Basic_Pi_0_Proof::protocol_name());
-
-    println!("zyd 111");
-
-    let P_vec = x_matrix.iter()
-                    .zip(gamma_vec.iter())
-                    .map(|(x_vec, gamma)| {let P = x_vec.commit(&gamma, gens_n).compress();
-                        P.append_to_transcript(b"P", transcript); P })
-                    .collect();
-    let y_vec = x_matrix.iter()
-                    .map(|x_vec| {let y = scalar_math::compute_linearform(&a_vec, &x_vec);
-                        y.append_to_transcript(b"y", transcript); y})
-                    .collect();
-
-    println!("zyd 222");
-
-    let (r_vec, rho, A, t) = sigma_phase::commit_phase( 
-      &gens_1,
-      &gens_n,
-      transcript,
-      random_tape,
-      &a_vec,
-    );
-    println!("zyd 333");
-    let s = x_matrix.len();
-    
-    let c = sigma_phase::challenge_phase(transcript);
-    //let c = Scalar::one();
-    let c_vec = scalar_math::vandemonde_challenge(c, s);
-
-    let (z, phi) = sigma_phase::batch_response_phase(&c_vec, &gamma_vec, &rho, &x_matrix, &r_vec);
-    (
-      Basic_Pi_0_Proof {
-        A,
-        z,
-        t,
-        phi,
-      },
-      P_vec,
-      y_vec,
-    )
-  }
+  
 
   pub fn verify(
     &self,
@@ -149,6 +98,58 @@ impl Basic_Pi_0_Proof {
     }
   }
 
+  // For amortized basic protocol: $\Pi_0^{Am}$
+  pub fn amortized_prove(
+    gens_1: &MultiCommitGens,
+    gens_n: &MultiCommitGens,
+    transcript: &mut Transcript,
+    random_tape: &mut RandomTape,
+    x_matrix: &Vec<Vec<Scalar>>,
+    gamma_vec: &[Scalar],
+    a_vec: &[Scalar], //same linear form
+  ) -> (Basic_Pi_0_Proof, Vec<CompressedGroup>, Vec<Scalar>) {
+    transcript.append_protocol_name(Basic_Pi_0_Proof::protocol_name());
+
+    assert_eq!(x_matrix.len(), gamma_vec.len());
+    let s = x_matrix.len();
+
+    let mut P_vec: Vec<CompressedGroup> = Vec::new();
+    let mut y_vec: Vec<Scalar> = Vec::new();
+    for i in 0..s {
+      let x_vec = &x_matrix[i];
+      let gamma = gamma_vec[i];
+      let P = x_vec.commit(&gamma, gens_n).compress();
+      P.append_to_transcript(b"P", transcript); 
+      P_vec.push(P);
+      let y = scalar_math::compute_linearform(&a_vec, &x_vec);
+      y.append_to_transcript(b"y", transcript); 
+      y_vec.push(y);
+    }
+
+    let (r_vec, rho, A, t) = sigma_phase::commit_phase( 
+      &gens_1,
+      &gens_n,
+      transcript,
+      random_tape,
+      &a_vec,
+    );
+    
+    let c = transcript.challenge_scalar(b"c");
+    let c_vec = scalar_math::vandemonde_challenge(c, s);
+
+    let (z, phi) = sigma_phase::batch_response_phase(&c_vec, &gamma_vec, &rho, &x_matrix, &r_vec);
+    (
+      Basic_Pi_0_Proof {
+        A,
+        z,
+        t,
+        phi,
+      },
+      P_vec,
+      y_vec,
+    )
+  }
+
   pub fn amortized_verify(
     &self,
     gens_1: &MultiCommitGens,
@@ -160,22 +161,20 @@ impl Basic_Pi_0_Proof {
   ) -> Result<(), ProofVerifyError> {
     assert_eq!(gens_n.n, a.len());
     assert_eq!(gens_1.n, 1);
+    assert_eq!(P_vec.len(), y_vec.len());
 
     transcript.append_protocol_name(Basic_Pi_0_Proof::protocol_name());
 
-    P_vec.iter()
-          .zip(y_vec.iter())
-          .map(|(P, y)| {
-            P.append_to_transcript(b"P", transcript);
-            y.append_to_transcript(b"y", transcript);
-          });
+    let s = y_vec.len();
+    for i in 0..s {
+      P_vec[i].append_to_transcript(b"P", transcript);
+      y_vec[i].append_to_transcript(b"y", transcript);
+    }
    
     self.A.append_to_transcript(b"A", transcript);
     self.t.append_to_transcript(b"t", transcript);
 
-    let s = y_vec.len();
     let c = transcript.challenge_scalar(b"c");
-    //let c = Scalar::one();
     let c_vec = scalar_math::vandemonde_challenge(c, s);
 
     let mut result = false;
@@ -186,13 +185,11 @@ impl Basic_Pi_0_Proof {
         Err(r) => return Err(r),
       }
     }
-    
-    println!("zyd z:{:?}", self.z);
+
     result = GroupElement::vartime_multiscalar_mul(
         c_vec.clone(),
         P_depressed_vec,
       ) + self.A.unpack()? == self.z.commit(&self.phi, gens_n);
-    println!("zyd 555, result:{:?}", result);
 
     let l_z = scalar_math::compute_linearform(&self.z, &a);
     result &= scalar_math::compute_linearform(
@@ -253,8 +250,8 @@ mod tests {
   fn check_amortized_pi_0_Am_proof() {
     let mut csprng: OsRng = OsRng;
 
-    let n = 16;
-    let s = 1;
+    let n = 512;
+    let s = 21;
 
     let gens_1 = MultiCommitGens::new(1, b"test-two");
     let gens_1024 = MultiCommitGens::new(n, b"test-1024");
@@ -271,7 +268,6 @@ mod tests {
       let tmp: Vec<Scalar> = (0..n).map(|_| Scalar::random(&mut csprng)).collect();
       x.push(tmp);
     }
-    println!("zyd x:{:?}", x);
     
     let mut random_tape = RandomTape::new(b"proof");
     let mut prover_transcript = Transcript::new(b"example");

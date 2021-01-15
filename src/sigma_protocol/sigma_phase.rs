@@ -20,7 +20,6 @@ pub fn commit_phase(
   // produce randomness for the proofs
   let r_vec = random_tape.random_vector(b"r_vec", n);
   let rho = random_tape.random_scalar(b"rho");
-
   let A = r_vec.commit(&rho, gens_n).compress();
   A.append_to_transcript(b"A", transcript);
 
@@ -77,18 +76,14 @@ pub fn batch_response_phase(
   assert_eq!(x_matrix.len(), challenge_vec.len());
 
   let s = x_matrix.len();
-  let mut tmp_matrix: Vec<Vec<Scalar>> = Vec::new();
- 
   let x_matrix_t = scalar_math::matrix_transpose(&x_matrix);
   let z_vec = scalar_math::matrix_vector_mul(&x_matrix_t, &challenge_vec);
   let z = scalar_math::row_row_add(&z_vec, &r_vec);
 
-  println!("zyd z:{:?}", z);
-
-  let phi = challenge_vec.iter()
+  let phi: Scalar = challenge_vec.iter()
                             .zip(blind_x_vec.iter())
-                            .map(|(challenge, blind_x)|  challenge * blind_x + blind_r)
-                            .sum();
+                            .map(|(challenge, blind_x)|  challenge * blind_x)
+                            .sum::<Scalar>() + blind_r;
 
   (
     z,
