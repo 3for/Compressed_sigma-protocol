@@ -13,10 +13,10 @@ use super::scalar_math;
 #[derive(Debug, Serialize, Deserialize)]
 #[allow(non_camel_case_types)]
 pub struct Basic_Pi_0_Proof {
-  A: CompressedGroup,
-  z: Vec<Scalar>,
-  t: Scalar, // L(\vec{r})
-  phi: Scalar,
+  pub A: CompressedGroup,
+  pub z: Vec<Scalar>,
+  pub t: Scalar, // L(\vec{r})
+  pub phi: Scalar,
 }
 
 impl Basic_Pi_0_Proof {

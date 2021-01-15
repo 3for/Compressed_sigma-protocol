@@ -11,6 +11,7 @@ use super::scalar_math;
 
 // Section 3.1 in https://blog.csdn.net/mutourend/article/details/108654372
 // amortized basic sigma protocol $\Pi_0^{Am}$-protocol
+// same linear form
 #[derive(Debug, Serialize, Deserialize)]
 #[allow(non_camel_case_types)]
 pub struct Amortized_Basic_Pi_0_Proof {
