@@ -333,8 +333,15 @@ impl DotProductProof {
 
     let Cx = x_vec.commit(&blind_x, gens_n).compress();
     Cx.append_to_transcript(b"Cx", transcript);
+    //add a challenge to avoid the Prover cheat as mentioned in Halo.
+    let c_1 = transcript.challenge_scalar(b"c_1"); 
+    let gens_1_new = MultiCommitGens {
+      n: 1,
+      G: [c_1 * gens_1.G[0]].to_vec(),
+      h: c_1 * gens_1.h,
+    };
 
-    let Cy = y.commit(&blind_y, gens_1).compress();
+    let Cy = y.commit(&blind_y, &gens_1_new).compress();
     Cy.append_to_transcript(b"Cy", transcript);
 
     let delta = d_vec.commit(&r_delta, gens_n).compress();
@@ -342,7 +349,7 @@ impl DotProductProof {
 
     let dotproduct_a_d = DotProductProof::compute_dotproduct(&a_vec, &d_vec);
 
-    let beta = dotproduct_a_d.commit(&r_beta, gens_1).compress();
+    let beta = dotproduct_a_d.commit(&r_beta, &gens_1_new).compress();
     beta.append_to_transcript(b"beta", transcript);
 
     let c = transcript.challenge_scalar(b"c");
@@ -381,6 +388,15 @@ impl DotProductProof {
 
     transcript.append_protocol_name(DotProductProof::protocol_name());
     Cx.append_to_transcript(b"Cx", transcript);
+    //add a challenge to avoid the Prover cheat as mentioned in Halo.
+    let c_1 = transcript.challenge_scalar(b"c_1");
+    let gens_1_new = MultiCommitGens {
+      n: 1,
+      G: [c_1 * gens_1.G[0]].to_vec(),
+      h: c_1 * gens_1.h,
+    };
+
+
     Cy.append_to_transcript(b"Cy", transcript);
     self.delta.append_to_transcript(b"delta", transcript);
     self.beta.append_to_transcript(b"beta", transcript);
@@ -391,7 +407,7 @@ impl DotProductProof {
       c * Cx.unpack()? + self.delta.unpack()? == self.z.commit(&self.z_delta, gens_n);
 
     let dotproduct_z_a = DotProductProof::compute_dotproduct(&self.z, &a);
-    result &= c * Cy.unpack()? + self.beta.unpack()? == dotproduct_z_a.commit(&self.z_beta, gens_1);
+    result &= c * Cy.unpack()? + self.beta.unpack()? == dotproduct_z_a.commit(&self.z_beta, &gens_1_new);
 
     if result {
       Ok(())
@@ -577,6 +593,7 @@ pub struct InnerPolyProductProofLog {
   z1: Scalar,
   z2: Scalar,
 }
+
 
 impl InnerPolyProductProofLog {
   fn protocol_name() -> &'static [u8] {
