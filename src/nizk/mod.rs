@@ -652,6 +652,13 @@ impl InnerPolyProductProofLog {
 
     let Ca = a_vec.commit(&blind_a, &gens.gens_n).compress();
     Ca.append_to_transcript(b"Ca", transcript);
+    //add a challenge to avoid the Prover cheat as mentioned in Halo.
+    let c_1 = transcript.challenge_scalar(b"c_1");
+    
+    let x_vec_new: Vec<Scalar>
+     = x_vec.iter()
+              .map(|x| c_1 * x)
+              .collect();
 
     let blind_Gamma = blind_a;
     let (bullet_reduction_proof, _Gamma_hat, a_hat, x_hat, g_hat, rhat_Gamma) =
@@ -661,7 +668,7 @@ impl InnerPolyProductProofLog {
         &gens.gens_n.G,
         &gens.gens_n.h,
         a_vec,
-        x_vec,
+        &x_vec_new,
         &blind_Gamma,
         &blinds_vec,
       );
@@ -711,13 +718,20 @@ impl InnerPolyProductProofLog {
 
     transcript.append_protocol_name(InnerPolyProductProofLog::protocol_name());
     Ca.append_to_transcript(b"Ca", transcript);
+    //add a challenge to avoid the Prover cheat as mentioned in Halo.
+    let c_1 = transcript.challenge_scalar(b"c_1");
 
-    let Gamma = Ca.unpack()? + y * gens.gens_1.G[0];
+    let x_vec_new: Vec<Scalar>
+     = x.iter()
+              .map(|x| c_1 * x)
+              .collect();
+
+    let Gamma = Ca.unpack()? + c_1 * y * gens.gens_1.G[0];
 
     let (g_hat, Gamma_hat, a_hat) =
       self
         .bullet_reduction_proof
-        .verify(n, x, transcript, &Gamma, &gens.gens_n.G)?;
+        .verify(n, &x_vec_new, transcript, &Gamma, &gens.gens_n.G)?;
     self.delta.append_to_transcript(b"delta", transcript);
     self.beta.append_to_transcript(b"beta", transcript);
 
