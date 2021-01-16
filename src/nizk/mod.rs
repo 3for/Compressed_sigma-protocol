@@ -479,11 +479,25 @@ impl DotProductProofLog {
 
     let Cx = x_vec.commit(&blind_x, &gens.gens_n).compress();
     Cx.append_to_transcript(b"Cx", transcript);
+    //add a challenge to avoid the Prover cheat as mentioned in Halo.
+    let c_1 = transcript.challenge_scalar(b"c_1");
+    let gens_1_new = MultiCommitGens {
+      n: 1,
+      G: [c_1 * gens.gens_1.G[0]].to_vec(),
+      h: c_1 * gens.gens_1.h,
+    };
 
-    let Cy = y.commit(&blind_y, &gens.gens_1).compress();
+
+    let Cy = y.commit(&blind_y, &gens_1_new).compress();
     Cy.append_to_transcript(b"Cy", transcript);
 
-    let blind_Gamma = blind_x + blind_y;
+    let blind_Gamma = blind_x + c_1 * blind_y;
+    let a_vec_new: Vec<Scalar>
+     = a_vec.iter()
+              .map(|a| c_1 * a)
+              .collect();
+
+
     let (bullet_reduction_proof, _Gamma_hat, x_hat, a_hat, g_hat, rhat_Gamma) =
       BulletReductionProof::prove(
         transcript,
@@ -491,7 +505,7 @@ impl DotProductProofLog {
         &gens.gens_n.G,
         &gens.gens_n.h,
         x_vec,
-        a_vec,
+        &a_vec_new,
         &blind_Gamma,
         &blinds_vec,
       );
@@ -542,6 +556,14 @@ impl DotProductProofLog {
 
     transcript.append_protocol_name(DotProductProofLog::protocol_name());
     Cx.append_to_transcript(b"Cx", transcript);
+    //add a challenge to avoid the Prover cheat as mentioned in Halo.
+    let c_1 = transcript.challenge_scalar(b"c_1");
+
+    let a_vec_new: Vec<Scalar>
+     = a.iter()
+              .map(|a| c_1 * a)
+              .collect();
+
     Cy.append_to_transcript(b"Cy", transcript);
 
     let Gamma = Cx.unpack()? + Cy.unpack()?;
@@ -549,7 +571,7 @@ impl DotProductProofLog {
     let (g_hat, Gamma_hat, a_hat) =
       self
         .bullet_reduction_proof
-        .verify(n, a, transcript, &Gamma, &gens.gens_n.G)?;
+        .verify(n, &a_vec_new, transcript, &Gamma, &gens.gens_n.G)?;
     self.delta.append_to_transcript(b"delta", transcript);
     self.beta.append_to_transcript(b"beta", transcript);
 
