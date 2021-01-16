@@ -563,7 +563,12 @@ impl DotProductProofLog {
 // Implementation of inner product scheme, as:
 // $y=<\vec{a}, \vec{x}>$, where both $y,\vec{x}$ are public, 
 // and $\vec{a}$ is secret.  
-// If $\vec{z}=[1,x,\cdots,x^n]$, then it's just a polynomial commitment evaluation)
+// If $\vec{z}=[1,x,\cdots,x^n]$, then it's just a polynomial commitment evaluation,
+// the same as the $PC_{DL}$ scheme mentioned in 
+// Paper <proof-carrying data from accumulation schemes>, 
+// OR
+// the same as the polynomial commitment scheme mentioned in 
+// Paper <Halo: Recursive Proof Composition without a Trusted Setup>
 #[derive(Debug, Serialize, Deserialize)]
 pub struct InnerPolyProductProofLog {
   bullet_reduction_proof: BulletReductionProof,
@@ -578,10 +583,6 @@ impl InnerPolyProductProofLog {
     b"inner poly product proof (log)"
   }
 
-  pub fn compute_dotproduct(a: &[Scalar], b: &[Scalar]) -> Scalar {
-    assert_eq!(a.len(), b.len());
-    (0..a.len()).map(|i| a[i] * b[i]).sum()
-  }
 
   pub fn prove(
     gens: &DotProductProofGens,
@@ -591,8 +592,7 @@ impl InnerPolyProductProofLog {
     blind_a: &Scalar,
     x_vec: &[Scalar],
     y: &Scalar,
-    blind_y: &Scalar,
-  ) -> (InnerPolyProductProofLog, CompressedGroup, CompressedGroup) {
+  ) -> (InnerPolyProductProofLog, CompressedGroup) {
     transcript.append_protocol_name(InnerPolyProductProofLog::protocol_name());
 
     let n = a_vec.len();
@@ -614,11 +614,8 @@ impl InnerPolyProductProofLog {
     let Ca = a_vec.commit(&blind_a, &gens.gens_n).compress();
     Ca.append_to_transcript(b"Ca", transcript);
 
-    let Cy = y.commit(&blind_y, &gens.gens_1).compress();
-    Cy.append_to_transcript(b"Cy", transcript);
-
-    let blind_Gamma = blind_a + blind_y;
-    let (bullet_reduction_proof, _Gamma_hat, x_hat, a_hat, g_hat, rhat_Gamma) =
+    let blind_Gamma = blind_a;
+    let (bullet_reduction_proof, _Gamma_hat, a_hat, x_hat, g_hat, rhat_Gamma) =
       BulletReductionProof::prove(
         transcript,
         &gens.gens_1.G[0],
@@ -629,7 +626,7 @@ impl InnerPolyProductProofLog {
         &blind_Gamma,
         &blinds_vec,
       );
-    let y_hat = x_hat * a_hat;
+    let y_hat = a_hat * x_hat;
 
     let delta = {
       let gens_hat = MultiCommitGens {
@@ -647,7 +644,7 @@ impl InnerPolyProductProofLog {
     let c = transcript.challenge_scalar(b"c");
 
     let z1 = d + c * y_hat;
-    let z2 = a_hat * (c * rhat_Gamma + r_beta) + r_delta;
+    let z2 = x_hat * (c * rhat_Gamma + r_beta) + r_delta;
 
     (
       InnerPolyProductProofLog {
@@ -658,7 +655,6 @@ impl InnerPolyProductProofLog {
         z2,
       },
       Ca,
-      Cy,
     )
   }
 
@@ -669,16 +665,15 @@ impl InnerPolyProductProofLog {
     transcript: &mut Transcript,
     x: &[Scalar],
     Ca: &CompressedGroup,
-    Cy: &CompressedGroup,
+    y: &Scalar,
   ) -> Result<(), ProofVerifyError> {
     assert!(gens.n >= n);
     assert_eq!(x.len(), n);
 
     transcript.append_protocol_name(InnerPolyProductProofLog::protocol_name());
     Ca.append_to_transcript(b"Ca", transcript);
-    Cy.append_to_transcript(b"Cy", transcript);
 
-    let Gamma = Ca.unpack()? + Cy.unpack()?;
+    let Gamma = Ca.unpack()? + y * gens.gens_1.G[0];
 
     let (g_hat, Gamma_hat, a_hat) =
       self
@@ -883,7 +878,7 @@ mod tests {
 
     let mut random_tape = RandomTape::new(b"proof");
     let mut prover_transcript = Transcript::new(b"example");
-    let (proof, Ca, Cy) = InnerPolyProductProofLog::prove(
+    let (proof, Ca) = InnerPolyProductProofLog::prove(
       &gens,
       &mut prover_transcript,
       &mut random_tape,
@@ -891,12 +886,11 @@ mod tests {
       &r_a,
       &x,
       &y,
-      &r_y,
     );
 
     let mut verifier_transcript = Transcript::new(b"example");
     assert!(proof
-      .verify(n, &gens, &mut verifier_transcript, &x, &Ca, &Cy)
+      .verify(n, &gens, &mut verifier_transcript, &x, &Ca, &y)
       .is_ok());
   }
 }
