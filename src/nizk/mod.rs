@@ -9,7 +9,7 @@ use super::transcript::{AppendToTranscript, ProofTranscript};
 use merlin::Transcript;
 use serde::{Deserialize, Serialize};
 
-mod bullet;
+pub mod bullet;
 use bullet::BulletReductionProof;
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -927,7 +927,6 @@ mod tests {
     let y = DotProductProof::compute_dotproduct(&x, &a);
 
     let r_a = Scalar::random(&mut csprng);
-    let r_y = Scalar::random(&mut csprng);
 
     let mut random_tape = RandomTape::new(b"proof");
     let mut prover_transcript = Transcript::new(b"example");

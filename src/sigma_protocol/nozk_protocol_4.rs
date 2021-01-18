@@ -9,12 +9,18 @@ use serde::{Deserialize, Serialize};
 use super::sigma_phase;
 use super::scalar_math;
 use super::super::nizk::*;
+use crate::math::Math;
+use crate::nizk::bullet::BulletReductionProof;
 
 // Protocol 4 in the paper: Compressed Proof of Knowledge $\Pi_2$ for $R_2$
 #[derive(Debug, Serialize, Deserialize)]
 #[allow(non_camel_case_types)]
 pub struct Pi_2_Proof {
-  z: Vec<Scalar>,
+  bullet_reduction_proof: BulletReductionProof,
+  delta: CompressedGroup,
+  beta: CompressedGroup,
+  z1: Scalar,
+  z2: Scalar,
 }
 
 impl Pi_2_Proof {
@@ -22,71 +28,137 @@ impl Pi_2_Proof {
     b"nozk compressed pi_2 proof"
   }
 
-  // non zeroknowledge, finally expose z_hat=[z_vec,phi] to Verifier.
-  pub fn nozk_prove(
-    gens_1: &MultiCommitGens,
-    gens_n: &MultiCommitGens,
+  pub fn prove(
+    gens: &DotProductProofGens,
     transcript: &mut Transcript,
     random_tape: &mut RandomTape,
-    z_vec: &[Scalar],
-    phi: &Scalar,
-    L_hat: &[Scalar],
-  ) -> (Pi_2_Proof, CompressedGroup, Scalar) {
+    a_vec: &[Scalar],
+    blind_a: &Scalar,
+    x_vec: &[Scalar],
+    y: &Scalar,
+  ) -> (Pi_2_Proof, CompressedGroup) {
     transcript.append_protocol_name(Pi_2_Proof::protocol_name());
 
-    let P_hat = z_vec.commit(&phi, gens_n).compress();
-    P_hat.append_to_transcript(b"P_hat", transcript);
+    let n = a_vec.len();
+    assert_eq!(x_vec.len(), a_vec.len());
+    assert_eq!(gens.gens_n.n, n);
 
-    
-    let mut z_hat = z_vec.clone().to_vec();
-    z_hat.push(*phi);
+    // produce randomness for generating a proof
+    let d = random_tape.random_scalar(b"d");
+    let r_delta = random_tape.random_scalar(b"r_delta");
+    let r_beta = random_tape.random_scalar(b"r_delta");
+    let blinds_vec = {
+      let v1 = random_tape.random_vector(b"blinds_vec_1", 2 * n.log2());
+      let v2 = random_tape.random_vector(b"blinds_vec_2", 2 * n.log2());
+      (0..v1.len())
+        .map(|i| (v1[i], v2[i]))
+        .collect::<Vec<(Scalar, Scalar)>>()
+    };
 
-    let y_hat = scalar_math::compute_linearform(&L_hat, &z_hat);
-    y_hat.append_to_transcript(b"y_hat", transcript);
+    let Ca = a_vec.commit(&blind_a, &gens.gens_n).compress();
+    Ca.append_to_transcript(b"Ca", transcript);
+    //add a challenge to avoid the Prover cheat as mentioned in Halo.
+    let c_1 = transcript.challenge_scalar(b"c_1");
     
-    let c_1 = sigma_phase::challenge_phase(transcript);
+    let x_vec_new: Vec<Scalar>
+     = x_vec.iter()
+              .map(|x| c_1 * x)
+              .collect();
+
+    let blind_Gamma = blind_a;
+    let (bullet_reduction_proof, _Gamma_hat, a_hat, x_hat, g_hat, rhat_Gamma) =
+      BulletReductionProof::prove(
+        transcript,
+        &gens.gens_1.G[0],
+        &gens.gens_n.G,
+        &gens.gens_n.h,
+        a_vec,
+        &x_vec_new,
+        &blind_Gamma,
+        &blinds_vec,
+      );
+    let y_hat = a_hat * x_hat;
+
+    let delta = {
+      let gens_hat = MultiCommitGens {
+        n: 1,
+        G: vec![g_hat],
+        h: gens.gens_1.h,
+      };
+      d.commit(&r_delta, &gens_hat).compress()
+    };
+    delta.append_to_transcript(b"delta", transcript);
+
+    let beta = d.commit(&r_beta, &gens.gens_1).compress();
+    beta.append_to_transcript(b"beta", transcript);
+
+    let c = transcript.challenge_scalar(b"c");
+
+    let z1 = d + c * y_hat;
+    let z2 = x_hat * (c * rhat_Gamma + r_beta) + r_delta;
 
     (
       Pi_2_Proof {
-        z: z_hat,
+        bullet_reduction_proof,
+        delta,
+        beta,
+        z1,
+        z2,
       },
-      P_hat,
-      y_hat,
+      Ca,
     )
   }
 
-  
-
-  pub fn nozk_verify(
+  pub fn verify(
     &self,
-    gens_1: &MultiCommitGens,
-    gens_n: &MultiCommitGens,
+    n: usize,
+    gens: &DotProductProofGens,
     transcript: &mut Transcript,
-    L_hat: &[Scalar],
-    P_hat: &CompressedGroup,
-    y_hat: &Scalar,
+    x: &[Scalar],
+    Ca: &CompressedGroup,
+    y: &Scalar,
   ) -> Result<(), ProofVerifyError> {
-    assert_eq!(gens_n.n+1, L_hat.len());
-    assert_eq!(gens_1.n, 1);
+    assert!(gens.gens_n.n >= n);
+    assert_eq!(x.len(), n);
 
     transcript.append_protocol_name(Pi_2_Proof::protocol_name());
-    P_hat.append_to_transcript(b"P_hat", transcript);
-    y_hat.append_to_transcript(b"y_hat", transcript);
-    
-    let c_1 = transcript.challenge_scalar(b"c");
-    let mut result = false;
-    match P_hat.unpack() {
-      Ok(P) => {
-        result = P + (c_1 * y_hat) * gens_1.G[0] == self.z[..self.z.len()-1].commit(&self.z[self.z.len()-1], gens_n) + c_1 * scalar_math::compute_linearform(&L_hat, &self.z) * gens_1.G[0];
-        if result {
-          return Ok(())
-        } else {
-          return Err(ProofVerifyError::InternalError)
-        }
-      },
-      Err(r) => return Err(r),
-    }
+    Ca.append_to_transcript(b"Ca", transcript);
+    //add a challenge to avoid the Prover cheat as mentioned in Halo.
+    let c_1 = transcript.challenge_scalar(b"c_1");
 
+    let x_vec_new: Vec<Scalar>
+     = x.iter()
+              .map(|x| c_1 * x)
+              .collect();
+
+    let Gamma = Ca.unpack()? + c_1 * y * gens.gens_1.G[0];
+
+    let (g_hat, Gamma_hat, a_hat) =
+      self
+        .bullet_reduction_proof
+        .verify(n, &x_vec_new, transcript, &Gamma, &gens.gens_n.G)?;
+    self.delta.append_to_transcript(b"delta", transcript);
+    self.beta.append_to_transcript(b"beta", transcript);
+
+    let c = transcript.challenge_scalar(b"c");
+
+    let c_s = &c;
+    let beta_s = self.beta.unpack()?;
+    let a_hat_s = &a_hat;
+    let delta_s = self.delta.unpack()?;
+    let z1_s = &self.z1;
+    let z2_s = &self.z2;
+
+    let lhs = ((Gamma_hat * c_s + beta_s) * a_hat_s + delta_s).compress();
+    let rhs = ((g_hat + gens.gens_1.G[0] * a_hat_s) * z1_s + gens.gens_1.h * z2_s).compress();
+
+    assert_eq!(lhs, rhs);
+
+    if lhs == rhs {
+      Ok(())
+    } else {
+      Err(ProofVerifyError::InternalError)
+    }
   }
 
 }
@@ -102,36 +174,29 @@ mod tests {
 
     let n = 1024;
 
-    let gens_1 = MultiCommitGens::new(1, b"test-two"); //[k,k_h]
-    let gens_1024 = MultiCommitGens::new(n, b"test-1024"); //[vec{g},h]
+    let gens = DotProductProofGens::new(n, b"test-1024");
 
-    let mut z: Vec<Scalar> = Vec::new();
-    let mut a: Vec<Scalar> = Vec::new();
-    for _ in 0..n {
-      z.push(Scalar::random(&mut csprng));
-      a.push(Scalar::random(&mut csprng));
-    }
+    let x: Vec<Scalar> = (0..n).map(|_i| Scalar::random(&mut csprng)).collect();
+    let a: Vec<Scalar> = (0..n).map(|_i| Scalar::random(&mut csprng)).collect();
+    let y = DotProductProof::compute_dotproduct(&x, &a);
 
-    let r_z = Scalar::random(&mut csprng);
-    
-    let mut L_hat = a.clone().to_vec();
-    L_hat.push(Scalar::zero());
+    let r_a = Scalar::random(&mut csprng);
 
     let mut random_tape = RandomTape::new(b"proof");
     let mut prover_transcript = Transcript::new(b"example");
-    let (proof_1, P_1, y_1) = Nozk_Protocol_3_Proof::nozk_prove(
-      &gens_1,
-      &gens_1024,
+    let (proof, Ca) = Pi_2_Proof::prove(
+      &gens,
       &mut prover_transcript,
       &mut random_tape,
-      &z,
-      &r_z,
-      &L_hat,
+      &a,
+      &r_a,
+      &x,
+      &y,
     );
 
     let mut verifier_transcript = Transcript::new(b"example");
-    assert!(proof_1
-      .nozk_verify(&gens_1, &gens_1024, &mut verifier_transcript, &L_hat, &P_1, &y_1)
+    assert!(proof
+      .verify(n, &gens, &mut verifier_transcript, &x, &Ca, &y)
       .is_ok());
   }
 }
