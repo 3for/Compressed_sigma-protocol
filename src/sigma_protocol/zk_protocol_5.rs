@@ -15,7 +15,7 @@ use crate::nizk::bullet::BulletReductionProof;
 // Protocol 4 in the paper: Compressed Proof of Knowledge $\Pi_2$ for $R_2$
 #[derive(Debug, Serialize, Deserialize)]
 #[allow(non_camel_case_types)]
-pub struct Pi_2_Proof {
+pub struct Pi_c_Proof {
   bullet_reduction_proof: BulletReductionProof,
   delta: CompressedGroup,
   beta: CompressedGroup,
@@ -23,9 +23,9 @@ pub struct Pi_2_Proof {
   z2: Scalar,
 }
 
-impl Pi_2_Proof {
+impl Pi_c_Proof {
   fn protocol_name() -> &'static [u8] {
-    b"nozk compressed pi_2 proof"
+    b"zk compressed pi_c proof"
   }
 
   pub fn prove(
@@ -36,8 +36,8 @@ impl Pi_2_Proof {
     blind_z: &Scalar,
     l_vec: &[Scalar],
     y: &Scalar,
-  ) -> (Pi_2_Proof, CompressedGroup) {
-    transcript.append_protocol_name(Pi_2_Proof::protocol_name());
+  ) -> (Pi_c_Proof, CompressedGroup) {
+    transcript.append_protocol_name(Pi_c_Proof::protocol_name());
 
     let n = z_vec.len();
     assert_eq!(l_vec.len(), z_vec.len());
@@ -98,7 +98,7 @@ impl Pi_2_Proof {
     let z2 = l_hat * (c * rhat_Gamma + r_beta) + r_delta;
 
     (
-      Pi_2_Proof {
+      Pi_c_Proof {
         bullet_reduction_proof,
         delta,
         beta,
@@ -121,7 +121,7 @@ impl Pi_2_Proof {
     assert!(gens.gens_n.n >= n);
     assert_eq!(l_vec.len(), n);
 
-    transcript.append_protocol_name(Pi_2_Proof::protocol_name());
+    transcript.append_protocol_name(Pi_c_Proof::protocol_name());
     Cz.append_to_transcript(b"Cz", transcript);
     //add a challenge to avoid the Prover cheat as mentioned in Halo.
     let c_1 = transcript.challenge_scalar(b"c_1");
@@ -169,7 +169,7 @@ mod tests {
   use super::*;
   use rand::rngs::OsRng;
   #[test]
-  fn check_pi_2_proof() {
+  fn check_pi_c_proof() {
     let mut csprng: OsRng = OsRng;
 
     let n = 1024;
@@ -184,7 +184,7 @@ mod tests {
 
     let mut random_tape = RandomTape::new(b"proof");
     let mut prover_transcript = Transcript::new(b"example");
-    let (proof, Cz) = Pi_2_Proof::prove(
+    let (proof, Cz) = Pi_c_Proof::prove(
       &gens,
       &mut prover_transcript,
       &mut random_tape,
