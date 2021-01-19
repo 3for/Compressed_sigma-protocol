@@ -15,6 +15,9 @@ use bullet::BulletReductionProof;
 pub mod nozk_bullet;
 use crate::nizk::nozk_bullet::NoZKBulletReductionProof;
 
+pub mod nozk_noinv_bullet;
+use crate::nizk::nozk_noinv_bullet::NoZKNoInvBulletReductionProof;
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct KnowledgeProof {
   alpha: CompressedGroup,
@@ -763,7 +766,7 @@ impl InnerPolyProductProofLog {
 // Follow <Compressed Σ-Protocol Theory and Practical Application to Plug & Play Secure Algorithmics>
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ThomasInnerPolyProductProofLog {
-  nozk_bullet_reduction_proof: NoZKBulletReductionProof,
+  nozk_bullet_reduction_proof: NoZKNoInvBulletReductionProof,
 }
 
 
@@ -791,7 +794,7 @@ impl ThomasInnerPolyProductProofLog {
     Ca.append_to_transcript(b"Ca", transcript);
 
     let nozk_bullet_reduction_proof =
-      NoZKBulletReductionProof::nozk_prove(
+      NoZKNoInvBulletReductionProof::nozk_prove(
         transcript,
         &gens.gens_1.G[0],
         &gens.gens_n.G,
@@ -1027,7 +1030,7 @@ mod tests {
   fn check_thomasinnerpolyproductproof_log() {
     let mut csprng: OsRng = OsRng;
 
-    let n = 1024;
+    let n = 16;
 
     let gens = DotProductProofGens::new(n, b"test-1024");
 
