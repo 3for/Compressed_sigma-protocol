@@ -16,6 +16,7 @@ use serde::{Deserialize, Serialize};
 pub struct NoZKBulletReductionProof {
   L_vec: Vec<CompressedGroup>,
   R_vec: Vec<CompressedGroup>,
+  a: Scalar,
 }
 
 impl NoZKBulletReductionProof {
@@ -36,16 +37,7 @@ impl NoZKBulletReductionProof {
     H: &GroupElement,
     a_vec: &[Scalar],
     b_vec: &[Scalar],
-    blind: &Scalar,
-    blinds_vec: &[(Scalar, Scalar)],
-  ) -> (
-    NoZKBulletReductionProof,
-    GroupElement,
-    Scalar,
-    Scalar,
-    GroupElement,
-    Scalar,
-  ) {
+  ) -> NoZKBulletReductionProof {
     // Create slices G, H, a, b backed by their respective
     // vectors.  This lets us reslice as we compress the lengths
     // of the vectors in the main loop below.
@@ -65,14 +57,11 @@ impl NoZKBulletReductionProof {
     assert_eq!(a.len(), n);
     assert_eq!(b.len(), n);
     assert_eq!(G_factors.len(), n);
-    assert_eq!(blinds_vec.len(), 2 * lg_n);
 
     //transcript.innerproduct_domain_sep(n as u64);
 
     let mut L_vec = Vec::with_capacity(lg_n);
     let mut R_vec = Vec::with_capacity(lg_n);
-    let mut blinds_iter = blinds_vec.iter();
-    let mut blind_fin = *blind;
 
     while n != 1 {
       n /= 2;
@@ -83,22 +72,18 @@ impl NoZKBulletReductionProof {
       let c_L = inner_product(&a_L, &b_R);
       let c_R = inner_product(&a_R, &b_L);
 
-      let (blind_L, blind_R) = blinds_iter.next().unwrap();
-
       let L = GroupElement::vartime_multiscalar_mul(
         a_L
           .iter()
-          .chain(iter::once(&c_L))
-          .chain(iter::once(blind_L)),
-        G_R.iter().chain(iter::once(Q)).chain(iter::once(H)),
+          .chain(iter::once(&c_L)),
+        G_R.iter().chain(iter::once(Q)),
       );
 
       let R = GroupElement::vartime_multiscalar_mul(
         a_R
           .iter()
-          .chain(iter::once(&c_R))
-          .chain(iter::once(blind_R)),
-        G_L.iter().chain(iter::once(Q)).chain(iter::once(H)),
+          .chain(iter::once(&c_R)),
+        G_L.iter().chain(iter::once(Q)),
       );
 
       transcript.append_point(b"L", &L.compress());
@@ -113,7 +98,6 @@ impl NoZKBulletReductionProof {
         G_L[i] = GroupElement::vartime_multiscalar_mul(&[u_inv, u], &[G_L[i], G_R[i]]);
       }
 
-      blind_fin = blind_fin + blind_L * u * u + blind_R * u_inv * u_inv;
 
       L_vec.push(L.compress());
       R_vec.push(R.compress());
@@ -123,17 +107,7 @@ impl NoZKBulletReductionProof {
       G = G_L;
     }
 
-    let Gamma_hat =
-      GroupElement::vartime_multiscalar_mul(&[a[0], a[0] * b[0], blind_fin], &[G[0], *Q, *H]);
-
-    (
-      NoZKBulletReductionProof { L_vec, R_vec },
-      Gamma_hat,
-      a[0],
-      b[0],
-      G[0],
-      blind_fin,
-    )
+    NoZKBulletReductionProof { L_vec, R_vec, a: a[0]}
   }
 
   /// Computes three vectors of verification scalars \\([u\_{i}^{2}]\\), \\([u\_{i}^{-2}]\\) and \\([s\_{i}]\\) for combined multiscalar multiplication
@@ -196,11 +170,12 @@ impl NoZKBulletReductionProof {
   pub fn nozk_verify(
     &self,
     n: usize,
-    a: &[Scalar],
+    b: &[Scalar],
     transcript: &mut Transcript,
     Gamma: &GroupElement,
+    Q: &GroupElement,
     G: &[GroupElement],
-  ) -> Result<(GroupElement, GroupElement, Scalar), ProofVerifyError> {
+  ) -> Result<(), ProofVerifyError> {
     let (u_sq, u_inv_sq, s) = self.verification_scalars(n, transcript)?;
 
     let Ls = self
@@ -216,7 +191,7 @@ impl NoZKBulletReductionProof {
       .collect::<Result<Vec<_>, _>>()?;
 
     let G_hat = GroupElement::vartime_multiscalar_mul(s.iter(), G.iter());
-    let a_hat = inner_product(a, &s);
+    let b_hat = inner_product(b, &s);
 
     let Gamma_hat = GroupElement::vartime_multiscalar_mul(
       u_sq
@@ -226,7 +201,12 @@ impl NoZKBulletReductionProof {
       Ls.iter().chain(Rs.iter()).chain(iter::once(Gamma)),
     );
 
-    Ok((G_hat, Gamma_hat, a_hat))
+    assert_eq!(Gamma_hat, self.a * G_hat + self.a * b_hat * Q);
+    if Gamma_hat == self.a * G_hat + self.a * b_hat * Q {
+      Ok(())
+    } else {
+      Err(ProofVerifyError::InternalError)
+    }
   }
 }
 

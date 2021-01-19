@@ -1,13 +1,11 @@
 use super::super::transcript::{AppendToTranscript, ProofTranscript};
 use super::super::scalar::Scalar;
-use super::super::group::{CompressedGroup, CompressedGroupExt, GroupElement, VartimeMultiscalarMul};
+use super::super::group::{CompressedGroup, CompressedGroupExt};
 use merlin::Transcript;
 use super::super::random::RandomTape;
 use super::super::commitments::{Commitments, MultiCommitGens};
 use super::super::errors::ProofVerifyError;
 use serde::{Deserialize, Serialize};
-use super::sigma_phase;
-use super::scalar_math;
 use super::super::nizk::*;
 use crate::math::Math;
 use crate::nizk::bullet::BulletReductionProof;

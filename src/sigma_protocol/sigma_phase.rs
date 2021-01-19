@@ -1,6 +1,6 @@
 use super::super::transcript::{AppendToTranscript, ProofTranscript};
 use super::super::scalar::Scalar;
-use super::super::group::{CompressedGroup, CompressedGroupExt, GroupElement, VartimeMultiscalarMul};
+use super::super::group::{CompressedGroup};
 use merlin::Transcript;
 use super::super::random::RandomTape;
 use super::super::commitments::{Commitments, MultiCommitGens};
@@ -74,8 +74,7 @@ pub fn batch_response_phase(
 ) -> (Vec<Scalar>, Scalar) {
   assert_eq!(x_matrix.len(), blind_x_vec.len());
   assert_eq!(x_matrix.len(), challenge_vec.len());
-
-  let s = x_matrix.len();
+  
   let x_matrix_t = scalar_math::matrix_transpose(&x_matrix);
   let z_vec = scalar_math::matrix_vector_mul(&x_matrix_t, &challenge_vec);
   let z = scalar_math::row_row_add(&z_vec, &r_vec);

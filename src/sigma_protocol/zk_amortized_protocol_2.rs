@@ -105,7 +105,6 @@ impl Pi_0_Am_Proof {
     let c = transcript.challenge_scalar(b"c");
     let c_vec = scalar_math::vandemonde_challenge(c, s);
 
-    let mut result = false;
     let mut P_depressed_vec: Vec<GroupElement> = Vec::new();
     for i in 0..s {       
       match P_vec[i].unpack() {
@@ -114,7 +113,7 @@ impl Pi_0_Am_Proof {
       }
     }
 
-    result = GroupElement::vartime_multiscalar_mul(
+    let mut result = GroupElement::vartime_multiscalar_mul(
         c_vec.clone(),
         P_depressed_vec,
       ) + self.A.unpack()? == self.z.commit(&self.phi, gens_n);
