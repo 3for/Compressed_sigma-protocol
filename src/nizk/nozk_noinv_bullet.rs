@@ -17,10 +17,11 @@ pub struct NoZKNoInvBulletReductionProof {
   L_vec: Vec<CompressedGroup>,
   R_vec: Vec<CompressedGroup>,
   a: Vec<Scalar>,
-  b: Vec<Scalar>,
-  G: Vec<GroupElement>,
+  /*b: Vec<Scalar>,
+  G: Vec<GroupElement>,*/
 }
 
+/// Implementation for Protocol 4 in <Compressed Σ-Protocol Theory and Practical Application to Plug & Play Secure Algorithmics>
 impl NoZKNoInvBulletReductionProof {
   /// Create an inner-product proof.
   ///
@@ -64,7 +65,6 @@ impl NoZKNoInvBulletReductionProof {
 
     let mut L_vec = Vec::with_capacity(lg_n);
     let mut R_vec = Vec::with_capacity(lg_n);
-    println!("zyd prove n:{:?}, lg_n:{:?}", n, lg_n);
 
     while n != 2 {
       n /= 2;
@@ -93,7 +93,6 @@ impl NoZKNoInvBulletReductionProof {
       transcript.append_point(b"R", &R.compress());
 
       let u = transcript.challenge_scalar(b"u");
-      println!("zyd prove u:{:?}", u);
 
       for i in 0..n {
         a_L[i] = a_L[i] + u * a_R[i];
@@ -109,8 +108,9 @@ impl NoZKNoInvBulletReductionProof {
       b = b_L;
       G = G_L;
     }
-    println!("zyd prove L_vec.len:{:?}", L_vec.len());
-    NoZKNoInvBulletReductionProof { L_vec, R_vec, a: a.to_vec(), b: b.to_vec(), G: G.to_vec()}
+
+    assert_eq!(a.len(), 2);
+    NoZKNoInvBulletReductionProof { L_vec, R_vec, a: a.to_vec()/*, b: b.to_vec(), G: G.to_vec()*/}
   }
 
   /// Computes three vectors of verification scalars \\([u\_{i}^{2}]\\), \\([u\_{i}^{-2}]\\) and \\([s\_{i}]\\) for combined multiscalar multiplication
@@ -127,7 +127,7 @@ impl NoZKNoInvBulletReductionProof {
       // and this check prevents overflow in 1<<lg_n below.
       return Err(ProofVerifyError::InternalError);
     }
-    println!("zyd verify n:{:?}, lg_n:{:?}, self.a.len():{:?}", n, lg_n, self.a.len());
+
     if n/2 != (1 << lg_n) {
       return Err(ProofVerifyError::InternalError);
     }
@@ -139,7 +139,6 @@ impl NoZKNoInvBulletReductionProof {
       transcript.append_point(b"R", R);
       challenges.push(transcript.challenge_scalar(b"u"));
     }
-    println!("zyd challenges:{:?}", challenges);
 
     // 2. Compute the ML_n Distribution mentioned in 
     // <Updatable Inner Product Argument with Logarithmic Verifier and Applications>
@@ -152,39 +151,13 @@ impl NoZKNoInvBulletReductionProof {
         ml_challenges.push(challenges[i] * ml_challenges[j]);
       }
     }
-    //reverse of ml_challenges
+    // 3. Reverse of ml_challenges
     let mut rev_ml_challenges: Vec<Scalar> = Vec::with_capacity(lg_n);
     for i in (0..ml_challenges.len()).rev() {
       rev_ml_challenges.push(ml_challenges[i]);      
     }
 
-    println!("zyd verify ml_challenges:{:?}\n, rev_ml_challenges:{:?}", ml_challenges, rev_ml_challenges);
-
-    // 2. Compute 1/(u_k...u_1) and 1/u_k, ..., 1/u_1
-    let mut challenges_inv = challenges.clone();
-    let allinv = Scalar::batch_invert(&mut challenges_inv);
-
-    // 3. Compute u_i^2 and (1/u_i)^2
-    for i in 0..lg_n {
-      challenges[i] = challenges[i].square();
-      challenges_inv[i] = challenges_inv[i].square();
-    }
-    let challenges_sq = challenges;
-    let challenges_inv_sq = challenges_inv;
-
-    // 4. Compute s values inductively.
-    let mut s = Vec::with_capacity(n);
-    s.push(allinv);
-    /*for i in 1..n {
-      let lg_i = (32 - 1 - (i as u32).leading_zeros()) as usize;
-      let k = 1 << lg_i;
-      // The challenges are stored in "creation order" as [u_k,...,u_1],
-      // so u_{lg(i)+1} = is indexed by (lg_n-1) - lg_i
-      let u_lg_i_sq = challenges_sq[(lg_n - 1) - lg_i];
-      s.push(s[i - k] * u_lg_i_sq);
-    }*/
-
-    Ok((ml_challenges, rev_ml_challenges, s))
+    Ok((ml_challenges, rev_ml_challenges, challenges))
   }
 
   /// This method is for testing that proof generation work,
@@ -201,21 +174,20 @@ impl NoZKNoInvBulletReductionProof {
     G: &[GroupElement],
   ) -> Result<(), ProofVerifyError> {
     assert_eq!(n, b.len());
-    let (u_sq, rev_ml_challenges, s) = self.verification_scalars(n, transcript)?;
-    println!("zyd verify aaaa");
+    let (ml_challenges, rev_ml_challenges, challenges) = self.verification_scalars(n, transcript)?;
+    
     let Ls = self
       .L_vec
       .iter()
       .map(|p| p.decompress().ok_or(ProofVerifyError::InternalError))
       .collect::<Result<Vec<_>, _>>()?;
-    println!("zyd verify bbbb");
+    
     let Rs = self
       .R_vec
       .iter()
       .map(|p| p.decompress().ok_or(ProofVerifyError::InternalError))
       .collect::<Result<Vec<_>, _>>()?;
-    println!("zyd verify cccc");
-    //let G_hat = GroupElement::vartime_multiscalar_mul(rev_ml_challenges.iter(), G.iter());
+    
     let mut b_odd: Vec<Scalar> = Vec::with_capacity(n/2);
     let mut b_even: Vec<Scalar> = Vec::with_capacity(n/2);
     for i in 0..b.len() {
@@ -227,8 +199,8 @@ impl NoZKNoInvBulletReductionProof {
     }
     let b_L_hat = inner_product(&b_odd, &rev_ml_challenges);
     let b_R_hat = inner_product(&b_even, &rev_ml_challenges);
-    assert_eq!(self.b[0], b_L_hat);
-    assert_eq!(self.b[1], b_R_hat);
+    /*assert_eq!(self.b[0], b_L_hat);
+    assert_eq!(self.b[1], b_R_hat);*/
 
     let mut G_odd: Vec<GroupElement> = Vec::with_capacity(n/2);
     let mut G_even: Vec<GroupElement> = Vec::with_capacity(n/2);
@@ -241,27 +213,23 @@ impl NoZKNoInvBulletReductionProof {
     }
     let G_L_hat = GroupElement::vartime_multiscalar_mul(rev_ml_challenges.iter(), G_odd.iter());
     let G_R_hat = GroupElement::vartime_multiscalar_mul(rev_ml_challenges.iter(), G_even.iter());
-    assert_eq!(self.G[0], G_L_hat);
-    assert_eq!(self.G[1], G_R_hat);
+    /*assert_eq!(self.G[0], G_L_hat);
+    assert_eq!(self.G[1], G_R_hat);*/
 
+    let lg_n = self.L_vec.len();
+    let mut Gamma_hat = *Gamma;
+    for i in 0..lg_n {
+        Gamma_hat = GroupElement::vartime_multiscalar_mul(&[Scalar::one(), challenges[i], challenges[i].square()], &[Ls[i], Gamma_hat, Rs[i]]);
+    }
 
-    println!("zyd verify ddd");
+    let c = inner_product(&self.a, &[b_L_hat, b_R_hat]);
 
-    let Gamma_hat = GroupElement::vartime_multiscalar_mul(
-      u_sq
-        .iter()
-        .chain(rev_ml_challenges.iter())
-        .chain(iter::once(&Scalar::one())),
-      Ls.iter().chain(Rs.iter()).chain(iter::once(Gamma)),
-    );
-
-    /*assert_eq!(Gamma_hat, self.a * G_hat + self.a * b_hat * Q);
-    if Gamma_hat == self.a * G_hat + self.a * b_hat * Q {
+    assert_eq!(Gamma_hat, &GroupElement::vartime_multiscalar_mul(&self.a, &[G_L_hat, G_R_hat]) + c * Q);
+    if Gamma_hat == &GroupElement::vartime_multiscalar_mul(&self.a, &[G_L_hat, G_R_hat]) + c * Q {
       Ok(())
     } else {
       Err(ProofVerifyError::InternalError)
-    }*/
-    Ok(())
+    }
   }
 }
 

@@ -1030,7 +1030,7 @@ mod tests {
   fn check_thomasinnerpolyproductproof_log() {
     let mut csprng: OsRng = OsRng;
 
-    let n = 16;
+    let n = 1024;
 
     let gens = DotProductProofGens::new(n, b"test-1024");
 
