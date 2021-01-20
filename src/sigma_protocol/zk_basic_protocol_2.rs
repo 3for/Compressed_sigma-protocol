@@ -1,6 +1,6 @@
 use super::super::transcript::{AppendToTranscript, ProofTranscript};
 use super::super::scalar::Scalar;
-use super::super::group::{CompressedGroup, CompressedGroupExt};
+use super::super::group::{CompressedGroup, CompressedGroupExt, GroupElement};
 use merlin::Transcript;
 use super::super::random::RandomTape;
 use super::super::commitments::{Commitments, MultiCommitGens};
@@ -23,6 +23,71 @@ impl Pi_0_Proof {
   fn protocol_name() -> &'static [u8] {
     b"basic pi_0 proof"
   }
+
+  pub fn mod_prove(
+    gens_1: &MultiCommitGens,
+    gens_n: &MultiCommitGens,
+    transcript: &mut Transcript,
+    random_tape: &mut RandomTape,
+    x_vec: &[Scalar], //private info.
+    gamma: &Scalar, //blind_x
+    a_vec: &[Scalar], //public info.
+  ) -> (Pi_0_Proof, CompressedGroup, Scalar) {
+    transcript.append_protocol_name(Pi_0_Proof::protocol_name());
+    
+    let P = x_vec.commit(&gamma, gens_n).compress();
+    P.append_to_transcript(b"P", transcript);
+
+    let y = scalar_math::compute_linearform(&a_vec, &x_vec);
+    y.append_to_transcript(b"y", transcript);
+
+    let (r_vec, rho, A, t) = sigma_phase::commit_phase( 
+      &gens_1,
+      &gens_n,
+      transcript,
+      random_tape,
+      &a_vec,
+    );
+
+    let c = sigma_phase::challenge_phase(transcript);
+
+    let (z, phi) = sigma_phase::response_phase(&c, &gamma, &rho, &x_vec, &r_vec);
+
+    (
+      Pi_0_Proof {
+        A,
+        z,
+        t,
+        phi,
+      },
+      P,
+      y,
+    )
+  }
+
+  pub fn mod_verify(
+    &self,
+    gens_1: &MultiCommitGens,
+    gens_n: &MultiCommitGens,
+    transcript: &mut Transcript,
+    a: &[Scalar],
+    P: &CompressedGroup,
+    y: &Scalar,
+  ) -> Result<(), ProofVerifyError> {
+    assert_eq!(gens_n.n, a.len());
+    assert_eq!(gens_1.n, 1);
+
+    transcript.append_protocol_name(Pi_0_Proof::protocol_name());
+    P.append_to_transcript(b"P", transcript);
+    y.append_to_transcript(b"y", transcript);
+    self.A.append_to_transcript(b"A", transcript);
+    self.t.append_to_transcript(b"t", transcript);
+
+
+    Ok(())
+  }
+
+
 
   pub fn prove(
     gens_1: &MultiCommitGens,

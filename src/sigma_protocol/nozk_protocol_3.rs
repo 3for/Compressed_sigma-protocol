@@ -1,23 +1,99 @@
 use super::super::transcript::{AppendToTranscript, ProofTranscript};
 use super::super::scalar::Scalar;
-use super::super::group::{CompressedGroup, CompressedGroupExt};
+use super::super::group::{CompressedGroup, CompressedGroupExt, GroupElement};
 use merlin::Transcript;
 use super::super::random::RandomTape;
 use super::super::commitments::{Commitments, MultiCommitGens};
 use super::super::errors::ProofVerifyError;
 use serde::{Deserialize, Serialize};
 use super::scalar_math;
+use crate::sigma_protocol::zk_basic_protocol_2::Pi_0_Proof;
 
 // Protocol 3 in the paper: Argument of Knowledge $\Pi_1$ for $R_1$
 #[derive(Debug, Serialize, Deserialize)]
 #[allow(non_camel_case_types)]
 pub struct Pi_1_Proof {
-  z: Vec<Scalar>,
+  pub z_hat: Vec<Scalar>,
 }
 
 impl Pi_1_Proof {
   fn protocol_name() -> &'static [u8] {
     b"nozk pi_1 proof"
+  }
+
+  // non zeroknowledge, finally expose z_hat=[z_vec,phi] to Verifier.
+  pub fn mod_prove(
+    gens_n: &MultiCommitGens,
+    transcript: &mut Transcript,
+    random_tape: &mut RandomTape,
+    z_vec: &[Scalar],
+    phi: &Scalar,
+    a_vec: &[Scalar], //public info.
+    proof_0: Pi_0_Proof,
+  ) -> (Pi_1_Proof, CompressedGroup, Scalar, Vec<Scalar>, Vec<GroupElement>) {
+    transcript.append_protocol_name(Pi_1_Proof::protocol_name());
+
+    let P_hat = proof_0.z.commit(&proof_0.phi, gens_n).compress();
+    P_hat.append_to_transcript(b"P_hat", transcript);
+
+    let mut z_hat = proof_0.z.clone();
+    z_hat.push(*phi);
+
+    let mut L_hat = a_vec.clone().to_vec();
+    L_hat.push(Scalar::zero());
+
+    let y_hat = scalar_math::compute_linearform(&L_hat, &z_hat);
+    y_hat.append_to_transcript(b"y_hat", transcript);
+
+    let c_1 = transcript.challenge_scalar(b"c_1");
+    
+    let mut L_tilde: Vec<Scalar> = Vec::new();
+    for i in 0..L_hat.len() {
+      L_tilde.push(c_1 * L_hat[i]);
+    }
+
+    let mut G_hat = gens_n.G.clone();
+    G_hat.push(gens_n.h);
+    
+    (
+      Pi_1_Proof {
+        z_hat,
+      },
+      P_hat,
+      y_hat,
+      L_tilde,
+      G_hat,
+    )
+  }
+
+  pub fn mod_verify(
+    &self,
+    gens_1: &MultiCommitGens,
+    gens_n: &MultiCommitGens,
+    transcript: &mut Transcript,
+    a_vec: &[Scalar],
+    P_hat: &CompressedGroup,
+    y_hat: &Scalar,
+    L_tilde: &[Scalar],
+  ) -> Result<(), ProofVerifyError> {
+    assert_eq!(gens_n.n, a_vec.len());
+    assert_eq!(gens_1.n, 1);
+
+    transcript.append_protocol_name(Pi_1_Proof::protocol_name());
+    P_hat.append_to_transcript(b"P_hat", transcript);
+    y_hat.append_to_transcript(b"y_hat", transcript);
+
+    let mut L_hat = a_vec.clone().to_vec();
+    L_hat.push(Scalar::zero());
+    
+    let c_1 = transcript.challenge_scalar(b"c_1");
+    for i in 0..L_hat.len(){
+      if L_tilde[i] != c_1 * L_hat[i] {
+        return Err(ProofVerifyError::InternalError)
+      }
+    }
+
+    Ok(())
   }
 
   // non zeroknowledge, finally expose z_hat=[z_vec,phi] to Verifier.
@@ -44,7 +120,7 @@ impl Pi_1_Proof {
     
     (
       Pi_1_Proof {
-        z: z_hat,
+        z_hat: z_hat,
       },
       P_hat,
       y_hat,
@@ -69,11 +145,11 @@ impl Pi_1_Proof {
     P_hat.append_to_transcript(b"P_hat", transcript);
     y_hat.append_to_transcript(b"y_hat", transcript);
     
-    let c_1 = transcript.challenge_scalar(b"c");
+    let c_1 = transcript.challenge_scalar(b"c_1");
     let mut result = false;
     match P_hat.unpack() {
       Ok(P) => {
-        result = P + (c_1 * y_hat) * gens_1.G[0] == self.z[..self.z.len()-1].commit(&self.z[self.z.len()-1], gens_n) + c_1 * scalar_math::compute_linearform(&L_hat, &self.z) * gens_1.G[0];
+        result = P + (c_1 * y_hat) * gens_1.G[0] == self.z_hat[..self.z_hat.len()-1].commit(&self.z_hat[self.z_hat.len()-1], gens_n) + c_1 * scalar_math::compute_linearform(&L_hat, &self.z_hat) * gens_1.G[0];
         if result {
           return Ok(())
         } else {

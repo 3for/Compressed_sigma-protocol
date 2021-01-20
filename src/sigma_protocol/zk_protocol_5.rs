@@ -177,8 +177,9 @@ mod tests {
     let l: Vec<Scalar> = (0..n).map(|_i| Scalar::random(&mut csprng)).collect();
     let z: Vec<Scalar> = (0..n).map(|_i| Scalar::random(&mut csprng)).collect();
     let y = DotProductProof::compute_dotproduct(&l, &z);
-
+    
     let r_z = Scalar::random(&mut csprng);
+    let Cz = z.commit(&r_z, &gens.gens_n).compress();
 
     let mut random_tape = RandomTape::new(b"proof");
     let mut prover_transcript = Transcript::new(b"example");

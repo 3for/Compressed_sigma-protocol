@@ -1,6 +1,6 @@
 use super::super::transcript::{AppendToTranscript, ProofTranscript};
 use super::super::scalar::Scalar;
-use super::super::group::{CompressedGroup, CompressedGroupExt};
+use super::super::group::{CompressedGroup, CompressedGroupExt, GroupElement, VartimeMultiscalarMul};
 use merlin::Transcript;
 use super::super::random::RandomTape;
 use super::super::commitments::{Commitments, MultiCommitGens};
@@ -9,11 +9,21 @@ use serde::{Deserialize, Serialize};
 use super::super::nizk::*;
 use crate::math::Math;
 use crate::nizk::bullet::BulletReductionProof;
+use crate::sigma_protocol::nozk_protocol_3::Pi_1_Proof;
+use crate::nizk::nozk_noinv_bullet::NoZKNoInvBulletReductionProof;
+use super::scalar_math;
 
 // Protocol 4 in the paper: Compressed Proof of Knowledge $\Pi_2$ for $R_2$
 #[derive(Debug, Serialize, Deserialize)]
 #[allow(non_camel_case_types)]
 pub struct Pi_2_Proof {
+  nozk_bullet_reduction_proof: NoZKNoInvBulletReductionProof,
+}
+
+// Protocol 4 in the paper: Compressed Proof of Knowledge $\Pi_2$ for $R_2$
+#[derive(Debug, Serialize, Deserialize)]
+#[allow(non_camel_case_types)]
+pub struct Pi_2_Proof_hyraxZK {
   bullet_reduction_proof: BulletReductionProof,
   delta: CompressedGroup,
   beta: CompressedGroup,
@@ -26,6 +36,75 @@ impl Pi_2_Proof {
     b"nozk compressed pi_2 proof"
   }
 
+  pub fn mod_prove(
+    gens: &DotProductProofGens,
+    transcript: &mut Transcript,
+    random_tape: &mut RandomTape,
+    L_tilde: &[Scalar],
+    y_hat: &Scalar,
+    proof_1: &Pi_1_Proof,
+    G_hat: &[GroupElement],
+  ) -> (Pi_2_Proof, CompressedGroup) {
+    transcript.append_protocol_name(Pi_2_Proof::protocol_name());
+
+    let z_hat = &proof_1.z_hat;
+    let n = z_hat.len();
+    assert_eq!(L_tilde.len(), z_hat.len());
+    assert_eq!(gens.gens_n.n, n);
+
+    let Q = (GroupElement::vartime_multiscalar_mul(z_hat, G_hat) + scalar_math::compute_linearform(&L_tilde, z_hat) * gens.gens_1.G[0]).compress();
+    Q.append_to_transcript(b"Q", transcript);
+
+    let nozk_bullet_reduction_proof =
+      NoZKNoInvBulletReductionProof::nozk_prove(
+        transcript,
+        &gens.gens_1.G[0],
+        &gens.gens_n.G,
+        &gens.gens_n.h,
+        &z_hat,
+        &L_tilde,
+      );
+
+    (
+      Pi_2_Proof {
+        nozk_bullet_reduction_proof: nozk_bullet_reduction_proof,
+      },
+      Q,
+    )
+  }
+
+  pub fn mod_verify(
+    &self,
+    n: usize,
+    gens: &DotProductProofGens,
+    transcript: &mut Transcript,
+    L_tilde: &[Scalar],
+    Q: &CompressedGroup,
+  ) -> Result<(), ProofVerifyError> {
+    assert!(gens.gens_n.n >= n);
+    assert_eq!(L_tilde.len(), n);
+
+    transcript.append_protocol_name(Pi_2_Proof::protocol_name());
+    Q.append_to_transcript(b"Q", transcript);
+
+    match Q.unpack() {
+      Ok(Q) => {
+        return
+          self.nozk_bullet_reduction_proof
+          .nozk_verify(n, &L_tilde, transcript, &Q, &gens.gens_1.G[0], &gens.gens_n.G);
+      },
+      Err(r) => return Err(r),
+    }
+   
+    
+  }
+}
+
+impl Pi_2_Proof_hyraxZK {
+  fn protocol_name() -> &'static [u8] {
+    b"nozk compressed pi_2 proof hyraxZK"
+  }
+
   pub fn prove(
     gens: &DotProductProofGens,
     transcript: &mut Transcript,
@@ -34,8 +113,8 @@ impl Pi_2_Proof {
     blind_z: &Scalar,
     l_vec: &[Scalar],
     y: &Scalar,
-  ) -> (Pi_2_Proof, CompressedGroup) {
-    transcript.append_protocol_name(Pi_2_Proof::protocol_name());
+  ) -> (Pi_2_Proof_hyraxZK, CompressedGroup) {
+    transcript.append_protocol_name(Pi_2_Proof_hyraxZK::protocol_name());
 
     let n = z_vec.len();
     assert_eq!(l_vec.len(), z_vec.len());
@@ -96,7 +175,7 @@ impl Pi_2_Proof {
     let z2 = l_hat * (c * rhat_Gamma + r_beta) + r_delta;
 
     (
-      Pi_2_Proof {
+      Pi_2_Proof_hyraxZK {
         bullet_reduction_proof,
         delta,
         beta,
@@ -119,7 +198,7 @@ impl Pi_2_Proof {
     assert!(gens.gens_n.n >= n);
     assert_eq!(l_vec.len(), n);
 
-    transcript.append_protocol_name(Pi_2_Proof::protocol_name());
+    transcript.append_protocol_name(Pi_2_Proof_hyraxZK::protocol_name());
     Cz.append_to_transcript(b"Cz", transcript);
     //add a challenge to avoid the Prover cheat as mentioned in Halo.
     let c_1 = transcript.challenge_scalar(b"c_1");
@@ -182,7 +261,7 @@ mod tests {
 
     let mut random_tape = RandomTape::new(b"proof");
     let mut prover_transcript = Transcript::new(b"example");
-    let (proof, Cz) = Pi_2_Proof::prove(
+    let (proof, Cz) = Pi_2_Proof_hyraxZK::prove(
       &gens,
       &mut prover_transcript,
       &mut random_tape,
