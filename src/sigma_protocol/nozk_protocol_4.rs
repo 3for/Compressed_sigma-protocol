@@ -42,12 +42,11 @@ impl Pi_2_Proof {
     random_tape: &mut RandomTape,
     L_tilde: &[Scalar],
     y_hat: &Scalar,
-    proof_1: &Pi_1_Proof,
+    z_hat: &[Scalar],
     G_hat: &[GroupElement],
   ) -> (Pi_2_Proof, CompressedGroup) {
     transcript.append_protocol_name(Pi_2_Proof::protocol_name());
 
-    let z_hat = &proof_1.z_hat;
     let n = z_hat.len();
     assert_eq!(L_tilde.len(), z_hat.len());
     assert_eq!(gens.gens_n.n, n);

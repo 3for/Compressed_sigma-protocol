@@ -1,6 +1,6 @@
 use super::super::transcript::{AppendToTranscript, ProofTranscript};
 use super::super::scalar::Scalar;
-use super::super::group::{CompressedGroup, CompressedGroupExt};
+use super::super::group::{CompressedGroup, CompressedGroupExt, GroupElement};
 use merlin::Transcript;
 use super::super::random::RandomTape;
 use super::super::commitments::{Commitments, MultiCommitGens};
@@ -17,11 +17,9 @@ use crate::sigma_protocol::nozk_protocol_4::Pi_2_Proof;
 #[derive(Debug, Serialize, Deserialize)]
 #[allow(non_camel_case_types)]
 pub struct Pi_c_Proof {
-  bullet_reduction_proof: BulletReductionProof,
-  delta: CompressedGroup,
-  beta: CompressedGroup,
-  z1: Scalar,
-  z2: Scalar,
+  proof_0: Pi_0_Proof,
+  proof_1: Pi_1_Proof,
+  proof_2: Pi_2_Proof,
 }
 
 impl Pi_c_Proof {
@@ -37,7 +35,7 @@ impl Pi_c_Proof {
     blind_x: &Scalar,
     l_vec: &[Scalar],
     y: &Scalar,
-  ) -> (Pi_c_Proof, CompressedGroup) {
+  ) -> (Pi_c_Proof, CompressedGroup, Scalar, CompressedGroup, Scalar, Vec<Scalar>, Vec<GroupElement>, CompressedGroup) {
     transcript.append_protocol_name(Pi_c_Proof::protocol_name());
 
     let n = x_vec.len();
@@ -54,7 +52,7 @@ impl Pi_c_Proof {
       &l_vec,
     );
 
-    let (proof_1, P_hat, y_hat, L_tilde, G_hat) = Pi_1_Proof::mod_prove(
+    let (proof_1, P_hat, y_hat, L_tilde, z_hat, G_hat) = Pi_1_Proof::mod_prove(
       &gens.gens_n,
       transcript,
       random_tape,
@@ -70,74 +68,24 @@ impl Pi_c_Proof {
       random_tape,
       &L_tilde,
       &y_hat,
-      &proof_1,
+      &z_hat,
       &G_hat,
     );
 
 
-    // produce randomness for generating a proof
-    let d = random_tape.random_scalar(b"d");
-    let r_delta = random_tape.random_scalar(b"r_delta");
-    let r_beta = random_tape.random_scalar(b"r_delta");
-    let blinds_vec = {
-      let v1 = random_tape.random_vector(b"blinds_vec_1", 2 * n.log2());
-      let v2 = random_tape.random_vector(b"blinds_vec_2", 2 * n.log2());
-      (0..v1.len())
-        .map(|i| (v1[i], v2[i]))
-        .collect::<Vec<(Scalar, Scalar)>>()
-    };
-
-    let Cx = x_vec.commit(&blind_x, &gens.gens_n).compress();
-    Cx.append_to_transcript(b"Cx", transcript);
-    //add a challenge to avoid the Prover cheat as mentioned in Halo.
-    let c_1 = transcript.challenge_scalar(b"c_1");
-    
-    let l_vec_new: Vec<Scalar>
-     = l_vec.iter()
-              .map(|l| c_1 * l)
-              .collect();
-
-    let blind_Gamma = blind_x;
-    let (bullet_reduction_proof, _Gamma_hat, z_hat, l_hat, g_hat, rhat_Gamma) =
-      BulletReductionProof::prove(
-        transcript,
-        &gens.gens_1.G[0],
-        &gens.gens_n.G,
-        &gens.gens_n.h,
-        x_vec,
-        &l_vec_new,
-        &blind_Gamma,
-        &blinds_vec,
-      );
-    let y_hat = z_hat * l_hat;
-
-    let delta = {
-      let gens_hat = MultiCommitGens {
-        n: 1,
-        G: vec![g_hat],
-        h: gens.gens_1.h,
-      };
-      d.commit(&r_delta, &gens_hat).compress()
-    };
-    delta.append_to_transcript(b"delta", transcript);
-
-    let beta = d.commit(&r_beta, &gens.gens_1).compress();
-    beta.append_to_transcript(b"beta", transcript);
-
-    let c = transcript.challenge_scalar(b"c");
-
-    let z1 = d + c * y_hat;
-    let z2 = l_hat * (c * rhat_Gamma + r_beta) + r_delta;
-
     (
       Pi_c_Proof {
-        bullet_reduction_proof,
-        delta,
-        beta,
-        z1,
-        z2,
+        proof_0,
+        proof_1,
+        proof_2,
       },
-      Cx,
+      P,
+      y,
+      P_hat, 
+      y_hat,
+      L_tilde,
+      G_hat,
+      Q,
     )
   }
 
@@ -153,7 +101,7 @@ impl Pi_c_Proof {
     assert!(gens.gens_n.n >= n);
     assert_eq!(l_vec.len(), n);
 
-    transcript.append_protocol_name(Pi_c_Proof::protocol_name());
+    /*transcript.append_protocol_name(Pi_c_Proof::protocol_name());
     Cx.append_to_transcript(b"Cx", transcript);
     //add a challenge to avoid the Prover cheat as mentioned in Halo.
     let c_1 = transcript.challenge_scalar(b"c_1");
@@ -190,7 +138,9 @@ impl Pi_c_Proof {
       Ok(())
     } else {
       Err(ProofVerifyError::InternalError)
-    }
+    }*/
+
+    Ok(())
   }
 
 }
@@ -217,7 +167,12 @@ mod tests {
 
     let mut random_tape = RandomTape::new(b"proof");
     let mut prover_transcript = Transcript::new(b"example");
-    let (proof, Cz) = Pi_c_Proof::prove(
+    let (proof, P, y,
+      P_hat, 
+      y_hat,
+      L_tilde,
+      G_hat,
+      Q) = Pi_c_Proof::prove(
       &gens,
       &mut prover_transcript,
       &mut random_tape,
@@ -229,7 +184,7 @@ mod tests {
 
     let mut verifier_transcript = Transcript::new(b"example");
     assert!(proof
-      .verify(n, &gens, &mut verifier_transcript, &l, &Cz, &y)
+      .verify(n, &gens, &mut verifier_transcript, &l, &P, &y)
       .is_ok());
   }
 }

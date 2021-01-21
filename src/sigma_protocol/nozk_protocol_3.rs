@@ -13,7 +13,6 @@ use crate::sigma_protocol::zk_basic_protocol_2::Pi_0_Proof;
 #[derive(Debug, Serialize, Deserialize)]
 #[allow(non_camel_case_types)]
 pub struct Pi_1_Proof {
-  pub z_hat: Vec<Scalar>,
 }
 
 impl Pi_1_Proof {
@@ -30,14 +29,14 @@ impl Pi_1_Proof {
     phi: &Scalar, //private info
     a_vec: &[Scalar], //public info.
     proof_0: &Pi_0_Proof,
-  ) -> (Pi_1_Proof, CompressedGroup, Scalar, Vec<Scalar>, Vec<GroupElement>) {
+  ) -> (Pi_1_Proof, CompressedGroup, Scalar, Vec<Scalar>, Vec<Scalar>, Vec<GroupElement>) {
     transcript.append_protocol_name(Pi_1_Proof::protocol_name());
+
+    let P_hat = z_vec.commit(phi, gens_n).compress();
+    P_hat.append_to_transcript(b"P_hat", transcript);
 
     let mut z_hat = z_vec.clone().to_vec();
     z_hat.push(*phi);
-
-    let P_hat = z_hat.commit(&Scalar::zero(), gens_n).compress();
-    P_hat.append_to_transcript(b"P_hat", transcript);
 
     let mut L_hat = a_vec.clone().to_vec();
     L_hat.push(Scalar::zero());
@@ -56,12 +55,11 @@ impl Pi_1_Proof {
     G_hat.push(gens_n.h);
     
     (
-      Pi_1_Proof {
-        z_hat,
-      },
+      Pi_1_Proof {},
       P_hat,
       y_hat,
       L_tilde,
+      z_hat,
       G_hat,
     )
   }
@@ -96,6 +94,21 @@ impl Pi_1_Proof {
     Ok(())
   }
 
+
+}
+
+// Protocol 3 in the paper: Argument of Knowledge $\Pi_1$ for $R_1$
+#[derive(Debug, Serialize, Deserialize)]
+#[allow(non_camel_case_types)]
+pub struct Pi_1_Proof_Pure {
+  pub z_hat: Vec<Scalar>,
+}
+
+impl Pi_1_Proof_Pure {
+  fn protocol_name() -> &'static [u8] {
+    b"nozk pi_1 proof pure"
+  }
+
   // non zeroknowledge, finally expose z_hat=[z_vec,phi] to Verifier.
   pub fn nozk_prove(
     gens_1: &MultiCommitGens,
@@ -105,8 +118,8 @@ impl Pi_1_Proof {
     z_vec: &[Scalar],
     phi: &Scalar,
     L_hat: &[Scalar],
-  ) -> (Pi_1_Proof, CompressedGroup, Scalar) {
-    transcript.append_protocol_name(Pi_1_Proof::protocol_name());
+  ) -> (Pi_1_Proof_Pure, CompressedGroup, Scalar) {
+    transcript.append_protocol_name(Pi_1_Proof_Pure::protocol_name());
 
     let P_hat = z_vec.commit(&phi, gens_n).compress();
     P_hat.append_to_transcript(b"P_hat", transcript);
@@ -119,7 +132,7 @@ impl Pi_1_Proof {
     y_hat.append_to_transcript(b"y_hat", transcript);
     
     (
-      Pi_1_Proof {
+      Pi_1_Proof_Pure {
         z_hat: z_hat,
       },
       P_hat,
@@ -164,6 +177,7 @@ impl Pi_1_Proof {
 }
 
 
+
 #[cfg(test)]
 mod tests {
   use super::*;
@@ -191,7 +205,7 @@ mod tests {
 
     let mut random_tape = RandomTape::new(b"proof");
     let mut prover_transcript = Transcript::new(b"example");
-    let (proof_1, P_1, y_1) = Pi_1_Proof::nozk_prove(
+    let (proof_1, P_1, y_1) = Pi_1_Proof_Pure::nozk_prove(
       &gens_1,
       &gens_1024,
       &mut prover_transcript,
