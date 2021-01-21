@@ -66,32 +66,18 @@ impl Pi_1_Proof {
 
   pub fn mod_verify(
     &self,
-    gens_1: &MultiCommitGens,
-    gens_n: &MultiCommitGens,
     transcript: &mut Transcript,
-    a_vec: &[Scalar],
     P_hat: &CompressedGroup,
     y_hat: &Scalar,
-    L_tilde: &[Scalar],
-  ) -> Result<(), ProofVerifyError> {
-    assert_eq!(gens_n.n, a_vec.len());
-    assert_eq!(gens_1.n, 1);
+  ) -> Scalar {
 
     transcript.append_protocol_name(Pi_1_Proof::protocol_name());
     P_hat.append_to_transcript(b"P_hat", transcript);
     y_hat.append_to_transcript(b"y_hat", transcript);
-
-    let mut L_hat = a_vec.clone().to_vec();
-    L_hat.push(Scalar::zero());
     
     let c_1 = transcript.challenge_scalar(b"c_1");
-    for i in 0..L_hat.len(){
-      if L_tilde[i] != c_1 * L_hat[i] {
-        return Err(ProofVerifyError::InternalError)
-      }
-    }
-
-    Ok(())
+    
+    c_1
   }
 
 

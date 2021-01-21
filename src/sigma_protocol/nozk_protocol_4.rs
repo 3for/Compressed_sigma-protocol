@@ -74,12 +74,13 @@ impl Pi_2_Proof {
   pub fn mod_verify(
     &self,
     n: usize,
-    gens: &DotProductProofGens,
+    gens_n: &MultiCommitGens,
+    gens_1: &MultiCommitGens,
     transcript: &mut Transcript,
     L_tilde: &[Scalar],
     Q: &CompressedGroup,
   ) -> Result<(), ProofVerifyError> {
-    assert!(gens.gens_n.n >= n);
+    assert!(gens_n.n >= n);
     assert_eq!(L_tilde.len(), n);
 
     transcript.append_protocol_name(Pi_2_Proof::protocol_name());
@@ -89,7 +90,7 @@ impl Pi_2_Proof {
       Ok(Q) => {
         return
           self.nozk_bullet_reduction_proof
-          .nozk_verify(n, &L_tilde, transcript, &Q, &gens.gens_1.G[0], &gens.gens_n.G);
+          .nozk_verify(n, &L_tilde, transcript, &Q, &gens_1.G[0], &gens_n.G);
       },
       Err(r) => return Err(r),
     }

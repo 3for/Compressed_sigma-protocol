@@ -35,7 +35,7 @@ impl Pi_c_Proof {
     blind_x: &Scalar,
     l_vec: &[Scalar],
     y: &Scalar,
-  ) -> (Pi_c_Proof, CompressedGroup, Scalar, CompressedGroup, Scalar) {
+  ) -> (Pi_c_Proof, CompressedGroup, Scalar, CompressedGroup) {
     transcript.append_protocol_name(Pi_c_Proof::protocol_name());
 
     let n = x_vec.len();
@@ -88,7 +88,6 @@ impl Pi_c_Proof {
       P,
       y,
       P_hat, 
-      y_hat,
     )
   }
 
@@ -101,40 +100,55 @@ impl Pi_c_Proof {
     P: &CompressedGroup,
     y: &Scalar,
     P_hat: &CompressedGroup,
-    y_hat: &Scalar,
   ) -> Result<(), ProofVerifyError> {
     assert!(gens.gens_n.n >= n);
     assert_eq!(l_vec.len(), n);
 
     transcript.append_protocol_name(Pi_c_Proof::protocol_name());
-    let mut result = 
-    match self.proof_0.mod_verify(
+    let c_0 = 
+    self.proof_0.mod_verify(
       &gens.gens_1,
       &gens.gens_n,
       transcript,
       &l_vec,
       &P,
-      &y,) {
-        Ok(()) => true ,
-        Err(r) => return Err(r),
-      };
+      &y,);
+    
+    let y_hat = c_0  * y + self.proof_0.t;
 
-    result = 
-    match self.proof_1.mod_verify(
-      &gens.gens_1,
-      &gens.gens_n,
+    let c_1 = 
+    self.proof_1.mod_verify(
       transcript,
-      random_tape,
-      &z_vec,
-      &phi,
-      &l_vec,
-      &proof_0,
-    ) {
-        Ok(()) => true ,
-        Err(r) => return Err(r),
-      };
+      &P_hat,
+      &y_hat,
+    );
 
-    Ok(())
+    let mut L_hat = l_vec.clone().to_vec();
+    L_hat.push(Scalar::zero());
+    
+    let mut L_tilde: Vec<Scalar> = Vec::new();
+    for i in 0..L_hat.len() {
+      L_tilde.push(c_1 * L_hat[i]);
+    }
+
+    let Q = (self.proof_0.A.unpack()? + c_0 * P.unpack()? + c_1 * y_hat * gens.gens_1.G[0]).compress();
+
+    let mut G_hat_vec = gens.gens_n.G.clone();
+    G_hat_vec.push(gens.gens_n.h);
+    let gens_hat = MultiCommitGens {
+      n: n+1,
+      G: G_hat_vec,
+      h: GROUP_BASEPOINT,
+    };
+
+    return self.proof_2.mod_verify(
+      n+1,
+      &gens_hat,
+      &gens.gens_1,
+      transcript,
+      &L_tilde,
+      &Q,
+    );
   }
 
 }
@@ -162,8 +176,7 @@ mod tests {
     let mut random_tape = RandomTape::new(b"proof");
     let mut prover_transcript = Transcript::new(b"example");
     let (proof, P, y,
-      P_hat, 
-      y_hat,) = Pi_c_Proof::prove(
+      P_hat, ) = Pi_c_Proof::prove(
       &gens,
       &mut prover_transcript,
       &mut random_tape,
@@ -175,7 +188,7 @@ mod tests {
 
     let mut verifier_transcript = Transcript::new(b"example");
     assert!(proof
-      .verify(n, &gens, &mut verifier_transcript, &l, &P, &y, &P_hat, &y_hat)
+      .verify(n, &gens, &mut verifier_transcript, &l, &P, &y, &P_hat)
       .is_ok());
   }
 }

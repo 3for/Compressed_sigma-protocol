@@ -71,7 +71,7 @@ impl Pi_0_Proof {
     a: &[Scalar],
     P: &CompressedGroup,
     y: &Scalar,
-  ) -> Result<(), ProofVerifyError> {
+  ) -> Scalar {
     assert_eq!(gens_n.n, a.len());
     assert_eq!(gens_1.n, 1);
 
@@ -81,8 +81,8 @@ impl Pi_0_Proof {
     self.A.append_to_transcript(b"A", transcript);
     self.t.append_to_transcript(b"t", transcript);
 
-
-    Ok(())
+    let c = transcript.challenge_scalar(b"c");
+    c
   }
 
 }
