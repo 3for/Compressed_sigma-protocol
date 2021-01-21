@@ -37,11 +37,10 @@ impl NoZKNoInvBulletReductionProof {
     transcript: &mut Transcript,
     Q: &GroupElement,
     G_vec: &[GroupElement],
-    H: &GroupElement,
     a_vec: &[Scalar],
     b_vec: &[Scalar],
   ) -> NoZKNoInvBulletReductionProof {
-    // Create slices G, H, a, b backed by their respective
+    // Create slices G, a, b backed by their respective
     // vectors.  This lets us reslice as we compress the lengths
     // of the vectors in the main loop below.
     let mut G = &mut G_vec.to_owned()[..];

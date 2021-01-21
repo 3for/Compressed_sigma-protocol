@@ -37,29 +37,28 @@ impl Pi_2_Proof {
   }
 
   pub fn mod_prove(
-    gens: &DotProductProofGens,
+    gens_n: &MultiCommitGens,
+    gens_1: &MultiCommitGens,
     transcript: &mut Transcript,
     random_tape: &mut RandomTape,
     L_tilde: &[Scalar],
     y_hat: &Scalar,
     z_hat: &[Scalar],
-    G_hat: &[GroupElement],
   ) -> (Pi_2_Proof, CompressedGroup) {
     transcript.append_protocol_name(Pi_2_Proof::protocol_name());
 
     let n = z_hat.len();
     assert_eq!(L_tilde.len(), z_hat.len());
-    assert_eq!(gens.gens_n.n, n);
+    assert_eq!(gens_n.n, n);
 
-    let Q = (GroupElement::vartime_multiscalar_mul(z_hat, G_hat) + scalar_math::compute_linearform(&L_tilde, z_hat) * gens.gens_1.G[0]).compress();
+    let Q = (GroupElement::vartime_multiscalar_mul(z_hat, &gens_n.G) + scalar_math::compute_linearform(&L_tilde, z_hat) * gens_1.G[0]).compress();
     Q.append_to_transcript(b"Q", transcript);
 
     let nozk_bullet_reduction_proof =
       NoZKNoInvBulletReductionProof::nozk_prove(
         transcript,
-        &gens.gens_1.G[0],
-        &gens.gens_n.G,
-        &gens.gens_n.h,
+        &gens_1.G[0],
+        &gens_n.G,
         &z_hat,
         &L_tilde,
       );

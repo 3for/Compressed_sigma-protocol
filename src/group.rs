@@ -23,6 +23,9 @@ impl CompressedGroupExt for CompressedGroup {
 pub const GROUP_BASEPOINT_COMPRESSED: CompressedGroup =
   curve25519_dalek::constants::RISTRETTO_BASEPOINT_COMPRESSED;
 
+pub const GROUP_BASEPOINT: GroupElement =
+  curve25519_dalek::constants::RISTRETTO_BASEPOINT_POINT;
+
 impl<'b> MulAssign<&'b Scalar> for GroupElement {
   fn mul_assign(&mut self, scalar: &'b Scalar) {
     let result = (self as &GroupElement) * Scalar::decompress_scalar(scalar);

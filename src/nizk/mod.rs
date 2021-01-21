@@ -798,7 +798,6 @@ impl ThomasInnerPolyProductProofLog {
         transcript,
         &gens.gens_1.G[0],
         &gens.gens_n.G,
-        &gens.gens_n.h,
         a_vec,
         &x_vec,
       );
