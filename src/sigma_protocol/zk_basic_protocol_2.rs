@@ -14,9 +14,7 @@ use super::scalar_math;
 #[allow(non_camel_case_types)]
 pub struct Pi_0_Proof {
   pub A: CompressedGroup,
-  pub z: Vec<Scalar>,
   pub t: Scalar, // L(\vec{r})
-  pub phi: Scalar,
 }
 
 impl Pi_0_Proof {
@@ -32,7 +30,7 @@ impl Pi_0_Proof {
     x_vec: &[Scalar], //private info.
     gamma: &Scalar, //blind_x
     a_vec: &[Scalar], //public info.
-  ) -> (Pi_0_Proof, CompressedGroup, Scalar) {
+  ) -> (Pi_0_Proof, CompressedGroup, Scalar, Vec<Scalar>, Scalar) {
     transcript.append_protocol_name(Pi_0_Proof::protocol_name());
     
     let P = x_vec.commit(&gamma, gens_n).compress();
@@ -56,12 +54,12 @@ impl Pi_0_Proof {
     (
       Pi_0_Proof {
         A,
-        z,
         t,
-        phi,
       },
       P,
       y,
+      z,
+      phi,
     )
   }
 
@@ -87,7 +85,22 @@ impl Pi_0_Proof {
     Ok(())
   }
 
+}
 
+// Protocol 2 in the paper: basic sigma protocol $\Pi_0$-protocol
+#[derive(Debug, Serialize, Deserialize)]
+#[allow(non_camel_case_types)]
+pub struct Pi_0_Proof_Pure {
+  pub A: CompressedGroup,
+  pub z: Vec<Scalar>,
+  pub t: Scalar, // L(\vec{r})
+  pub phi: Scalar,
+}
+
+impl Pi_0_Proof_Pure {
+  fn protocol_name() -> &'static [u8] {
+    b"basic pi_0 proof pure"
+  }
 
   pub fn prove(
     gens_1: &MultiCommitGens,
@@ -97,8 +110,8 @@ impl Pi_0_Proof {
     x_vec: &[Scalar],
     gamma: &Scalar,
     a_vec: &[Scalar],
-  ) -> (Pi_0_Proof, CompressedGroup, Scalar) {
-    transcript.append_protocol_name(Pi_0_Proof::protocol_name());
+  ) -> (Pi_0_Proof_Pure, CompressedGroup, Scalar) {
+    transcript.append_protocol_name(Pi_0_Proof_Pure::protocol_name());
     
     let P = x_vec.commit(&gamma, gens_n).compress();
     P.append_to_transcript(b"P", transcript);
@@ -119,7 +132,7 @@ impl Pi_0_Proof {
     let (z, phi) = sigma_phase::response_phase(&c, &gamma, &rho, &x_vec, &r_vec);
 
     (
-      Pi_0_Proof {
+      Pi_0_Proof_Pure {
         A,
         z,
         t,
@@ -129,8 +142,6 @@ impl Pi_0_Proof {
       y,
     )
   }
-
-  
 
   pub fn verify(
     &self,
@@ -144,7 +155,7 @@ impl Pi_0_Proof {
     assert_eq!(gens_n.n, a.len());
     assert_eq!(gens_1.n, 1);
 
-    transcript.append_protocol_name(Pi_0_Proof::protocol_name());
+    transcript.append_protocol_name(Pi_0_Proof_Pure::protocol_name());
     P.append_to_transcript(b"P", transcript);
     y.append_to_transcript(b"y", transcript);
     self.A.append_to_transcript(b"A", transcript);
@@ -191,7 +202,7 @@ mod tests {
     
     let mut random_tape = RandomTape::new(b"proof");
     let mut prover_transcript = Transcript::new(b"example");
-    let (proof, P, y) = Pi_0_Proof::prove(
+    let (proof, P, y) = Pi_0_Proof_Pure::prove(
       &gens_1,
       &gens_1024,
       &mut prover_transcript,

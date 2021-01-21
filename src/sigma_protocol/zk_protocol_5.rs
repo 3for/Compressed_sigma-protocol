@@ -9,6 +9,9 @@ use serde::{Deserialize, Serialize};
 use super::super::nizk::*;
 use crate::math::Math;
 use crate::nizk::bullet::BulletReductionProof;
+use crate::sigma_protocol::zk_basic_protocol_2::Pi_0_Proof;
+use crate::sigma_protocol::nozk_protocol_3::Pi_1_Proof;
+use crate::sigma_protocol::nozk_protocol_4::Pi_2_Proof;
 
 // Protocol 4 in the paper: Compressed Proof of Knowledge $\Pi_2$ for $R_2$
 #[derive(Debug, Serialize, Deserialize)]
@@ -30,16 +33,47 @@ impl Pi_c_Proof {
     gens: &DotProductProofGens,
     transcript: &mut Transcript,
     random_tape: &mut RandomTape,
-    z_vec: &[Scalar],
-    blind_z: &Scalar,
+    x_vec: &[Scalar],
+    blind_x: &Scalar,
     l_vec: &[Scalar],
     y: &Scalar,
   ) -> (Pi_c_Proof, CompressedGroup) {
     transcript.append_protocol_name(Pi_c_Proof::protocol_name());
 
-    let n = z_vec.len();
-    assert_eq!(l_vec.len(), z_vec.len());
+    let n = x_vec.len();
+    assert_eq!(l_vec.len(), x_vec.len());
     assert_eq!(gens.gens_n.n, n);
+
+    let (proof_0, P, y, z_vec, phi) = Pi_0_Proof::mod_prove(
+      &gens.gens_1,
+      &gens.gens_n,
+      transcript,
+      random_tape,
+      &x_vec,
+      &blind_x,
+      &l_vec,
+    );
+
+    let (proof_1, P_hat, y_hat, L_tilde, G_hat) = Pi_1_Proof::mod_prove(
+      &gens.gens_n,
+      transcript,
+      random_tape,
+      &z_vec,
+      &phi,
+      &l_vec,
+      &proof_0,
+    );
+
+    let (proof_2, Q) = Pi_2_Proof::mod_prove(
+      &gens,
+      transcript,
+      random_tape,
+      &L_tilde,
+      &y_hat,
+      &proof_1,
+      &G_hat,
+    );
+
 
     // produce randomness for generating a proof
     let d = random_tape.random_scalar(b"d");
@@ -53,8 +87,8 @@ impl Pi_c_Proof {
         .collect::<Vec<(Scalar, Scalar)>>()
     };
 
-    let Cz = z_vec.commit(&blind_z, &gens.gens_n).compress();
-    Cz.append_to_transcript(b"Cz", transcript);
+    let Cx = x_vec.commit(&blind_x, &gens.gens_n).compress();
+    Cx.append_to_transcript(b"Cx", transcript);
     //add a challenge to avoid the Prover cheat as mentioned in Halo.
     let c_1 = transcript.challenge_scalar(b"c_1");
     
@@ -63,14 +97,14 @@ impl Pi_c_Proof {
               .map(|l| c_1 * l)
               .collect();
 
-    let blind_Gamma = blind_z;
+    let blind_Gamma = blind_x;
     let (bullet_reduction_proof, _Gamma_hat, z_hat, l_hat, g_hat, rhat_Gamma) =
       BulletReductionProof::prove(
         transcript,
         &gens.gens_1.G[0],
         &gens.gens_n.G,
         &gens.gens_n.h,
-        z_vec,
+        x_vec,
         &l_vec_new,
         &blind_Gamma,
         &blinds_vec,
@@ -103,7 +137,7 @@ impl Pi_c_Proof {
         z1,
         z2,
       },
-      Cz,
+      Cx,
     )
   }
 
@@ -113,14 +147,14 @@ impl Pi_c_Proof {
     gens: &DotProductProofGens,
     transcript: &mut Transcript,
     l_vec: &[Scalar],
-    Cz: &CompressedGroup,
+    Cx: &CompressedGroup,
     y: &Scalar,
   ) -> Result<(), ProofVerifyError> {
     assert!(gens.gens_n.n >= n);
     assert_eq!(l_vec.len(), n);
 
     transcript.append_protocol_name(Pi_c_Proof::protocol_name());
-    Cz.append_to_transcript(b"Cz", transcript);
+    Cx.append_to_transcript(b"Cx", transcript);
     //add a challenge to avoid the Prover cheat as mentioned in Halo.
     let c_1 = transcript.challenge_scalar(b"c_1");
 
@@ -129,7 +163,7 @@ impl Pi_c_Proof {
               .map(|l| c_1 * l)
               .collect();
 
-    let Gamma = Cz.unpack()? + c_1 * y * gens.gens_1.G[0];
+    let Gamma = Cx.unpack()? + c_1 * y * gens.gens_1.G[0];
 
     let (g_hat, Gamma_hat, a_hat) =
       self

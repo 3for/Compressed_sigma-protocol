@@ -26,18 +26,18 @@ impl Pi_1_Proof {
     gens_n: &MultiCommitGens,
     transcript: &mut Transcript,
     random_tape: &mut RandomTape,
-    z_vec: &[Scalar],
-    phi: &Scalar,
+    z_vec: &[Scalar], //private info
+    phi: &Scalar, //private info
     a_vec: &[Scalar], //public info.
-    proof_0: Pi_0_Proof,
+    proof_0: &Pi_0_Proof,
   ) -> (Pi_1_Proof, CompressedGroup, Scalar, Vec<Scalar>, Vec<GroupElement>) {
     transcript.append_protocol_name(Pi_1_Proof::protocol_name());
 
-    let P_hat = proof_0.z.commit(&proof_0.phi, gens_n).compress();
-    P_hat.append_to_transcript(b"P_hat", transcript);
-
-    let mut z_hat = proof_0.z.clone();
+    let mut z_hat = z_vec.clone().to_vec();
     z_hat.push(*phi);
+
+    let P_hat = z_hat.commit(&Scalar::zero(), gens_n).compress();
+    P_hat.append_to_transcript(b"P_hat", transcript);
 
     let mut L_hat = a_vec.clone().to_vec();
     L_hat.push(Scalar::zero());
