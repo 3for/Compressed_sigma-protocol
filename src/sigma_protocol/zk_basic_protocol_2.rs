@@ -29,13 +29,14 @@ impl Pi_0_Proof {
     x_vec: &[Scalar], //private info.
     gamma: &Scalar, //blind_x
     a_vec: &[Scalar], //public info.
-  ) -> (Pi_0_Proof, CompressedGroup, Scalar, Vec<Scalar>, Scalar) {
+    y: &Scalar, //public info
+  ) -> (Pi_0_Proof, CompressedGroup, Vec<Scalar>, Scalar) {
     transcript.append_protocol_name(Pi_0_Proof::protocol_name());
     
     let P = x_vec.commit(&gamma, gens_n).compress();
     P.append_to_transcript(b"P", transcript);
 
-    let y = scalar_math::compute_linearform(&a_vec, &x_vec);
+    //let y = scalar_math::compute_linearform(&a_vec, &x_vec);
     y.append_to_transcript(b"y", transcript);
 
     let (r_vec, rho, A, t) = sigma_phase::commit_phase( 
@@ -55,7 +56,6 @@ impl Pi_0_Proof {
         t,
       },
       P,
-      y,
       z,
       phi,
     )

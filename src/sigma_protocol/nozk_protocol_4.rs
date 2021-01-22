@@ -39,9 +39,7 @@ impl Pi_2_Proof {
     gens_n: &MultiCommitGens,
     gens_1: &MultiCommitGens,
     transcript: &mut Transcript,
-    random_tape: &mut RandomTape,
     L_tilde: &[Scalar],
-    y_hat: &Scalar,
     z_hat: &[Scalar],
   ) -> (Pi_2_Proof, CompressedGroup) {
     transcript.append_protocol_name(Pi_2_Proof::protocol_name());

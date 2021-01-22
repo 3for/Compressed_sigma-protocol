@@ -32,20 +32,22 @@ impl Pi_c_Proof {
     x_vec: &[Scalar],
     gamma: &Scalar,
     l_vec: &[Scalar],
-  ) -> (Pi_c_Proof, CompressedGroup, Scalar, CompressedGroup) {
+    y: &Scalar,
+  ) -> (Pi_c_Proof, CompressedGroup, CompressedGroup) {
     transcript.append_protocol_name(Pi_c_Proof::protocol_name());
 
     let n = x_vec.len();
     assert_eq!(l_vec.len(), x_vec.len());
     assert_eq!(gens.gens_n.n, n);
 
-    let (proof_0, P, y, z_vec, phi) = Pi_0_Proof::mod_prove(
+    let (proof_0, P, z_vec, phi) = Pi_0_Proof::mod_prove(
       &gens.gens_n,
       transcript,
       random_tape,
       &x_vec,
       &gamma,
       &l_vec,
+      &y,
     );
 
     let (proof_1, P_hat, y_hat, L_tilde, z_hat, G_hat_vec) = Pi_1_Proof::mod_prove(
@@ -66,9 +68,7 @@ impl Pi_c_Proof {
       &gens_hat,
       &gens.gens_1,
       transcript,
-      random_tape,
       &L_tilde,
-      &y_hat,
       &z_hat
     );
 
@@ -80,7 +80,6 @@ impl Pi_c_Proof {
         proof_2,
       },
       P,
-      y,
       P_hat, 
     )
   }
@@ -161,20 +160,21 @@ mod tests {
 
     let l: Vec<Scalar> = (0..n).map(|_i| Scalar::random(&mut csprng)).collect();
     let z: Vec<Scalar> = (0..n).map(|_i| Scalar::random(&mut csprng)).collect();
-    
+    let y = DotProductProof::compute_dotproduct(&l, &z);
+
     let r_z = Scalar::random(&mut csprng);
     let Cz = z.commit(&r_z, &gens.gens_n).compress();
 
     let mut random_tape = RandomTape::new(b"proof");
     let mut prover_transcript = Transcript::new(b"example");
-    let (proof, P, y,
-      P_hat, ) = Pi_c_Proof::prove(
+    let (proof, P, P_hat, ) = Pi_c_Proof::prove(
       &gens,
       &mut prover_transcript,
       &mut random_tape,
       &z,
       &r_z,
       &l,
+      &y,
     );
 
     let mut verifier_transcript = Transcript::new(b"example");

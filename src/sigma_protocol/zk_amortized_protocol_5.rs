@@ -12,7 +12,7 @@ use crate::sigma_protocol::nozk_protocol_3::Pi_1_Proof;
 use crate::sigma_protocol::nozk_protocol_4::Pi_2_Proof;
 use super::scalar_math;
 
-// Section 3 in https://blog.csdn.net/mutourend/article/details/108654372
+// Section 4.3 in https://blog.csdn.net/mutourend/article/details/108654372
 // amortized basic sigma protocol $\Pi_c^{Am}$-protocol
 // same linear form
 #[derive(Debug, Serialize, Deserialize)]
@@ -35,7 +35,8 @@ impl Pi_c_Am_Proof {
     x_matrix: &Vec<Vec<Scalar>>,
     gamma_vec: &[Scalar],
     l_vec: &[Scalar],
-  ) -> (Pi_c_Am_Proof, Vec<CompressedGroup>, Vec<Scalar>, CompressedGroup) {
+    y_vec: &[Scalar],
+  ) -> (Pi_c_Am_Proof, Vec<CompressedGroup>, CompressedGroup) {
     transcript.append_protocol_name(Pi_c_Am_Proof::protocol_name());
 
     let n = l_vec.len();
@@ -43,13 +44,14 @@ impl Pi_c_Am_Proof {
     assert_eq!(gamma_vec.len(), s);
     assert_eq!(gens.gens_n.n, n);
 
-    let (proof_0, P_vec, y_vec, z_vec, phi) = Pi_0_Am_Proof::mod_amortized_prove(
+    let (proof_0, P_vec, z_vec, phi) = Pi_0_Am_Proof::mod_amortized_prove(
       &gens.gens_n,
       transcript,
       random_tape,
       &x_matrix,
       &gamma_vec,
       &l_vec,
+      &y_vec,
     );
 
     let (proof_1, P_hat, y_hat, L_tilde, z_hat, G_hat_vec) = Pi_1_Proof::mod_prove(
@@ -70,9 +72,7 @@ impl Pi_c_Am_Proof {
       &gens_hat,
       &gens.gens_1,
       transcript,
-      random_tape,
       &L_tilde,
-      &y_hat,
       &z_hat
     );
 
@@ -84,7 +84,6 @@ impl Pi_c_Am_Proof {
         proof_2,
       },
       P_vec,
-      y_vec,
       P_hat, 
     )
   }
@@ -192,16 +191,24 @@ mod tests {
       x_matrix.push(tmp);
     }
 
+    let mut y_vec: Vec<Scalar> = Vec::new();
+    for i in 0..s {
+      let x_vec = &x_matrix[i];
+      let gamma = gamma_vec[i];
+      let y = scalar_math::compute_linearform(&l_vec, &x_vec);
+      y_vec.push(y);
+    }
+
     let mut random_tape = RandomTape::new(b"proof");
     let mut prover_transcript = Transcript::new(b"example");
-    let (proof, P_vec, y_vec,
-      P_hat, ) = Pi_c_Am_Proof::amortized_prove(
+    let (proof, P_vec, P_hat, ) = Pi_c_Am_Proof::amortized_prove(
       &gens,
       &mut prover_transcript,
       &mut random_tape,
       &x_matrix,
       &gamma_vec,
       &l_vec,
+      &y_vec,
     );
 
     let mut verifier_transcript = Transcript::new(b"example");

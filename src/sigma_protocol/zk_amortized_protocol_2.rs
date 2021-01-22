@@ -32,23 +32,22 @@ impl Pi_0_Am_Proof {
     x_matrix: &Vec<Vec<Scalar>>,
     gamma_vec: &[Scalar],
     a_vec: &[Scalar], //same linear form
-  ) -> (Pi_0_Am_Proof, Vec<CompressedGroup>, Vec<Scalar>, Vec<Scalar>, Scalar) {
+    y_vec: &[Scalar],
+  ) -> (Pi_0_Am_Proof, Vec<CompressedGroup>, Vec<Scalar>, Scalar) {
     transcript.append_protocol_name(Pi_0_Am_Proof::protocol_name());
 
     assert_eq!(x_matrix.len(), gamma_vec.len());
     let s = x_matrix.len();
 
     let mut P_vec: Vec<CompressedGroup> = Vec::new();
-    let mut y_vec: Vec<Scalar> = Vec::new();
     for i in 0..s {
       let x_vec = &x_matrix[i];
       let gamma = gamma_vec[i];
       let P = x_vec.commit(&gamma, gens_n).compress();
       P.append_to_transcript(b"P", transcript); 
       P_vec.push(P);
-      let y = scalar_math::compute_linearform(&a_vec, &x_vec);
+      let y = y_vec[i];
       y.append_to_transcript(b"y", transcript); 
-      y_vec.push(y);
     }
 
     let (r_vec, rho, A, t) = sigma_phase::commit_phase( 
@@ -68,7 +67,6 @@ impl Pi_0_Am_Proof {
         t,
       },
       P_vec,
-      y_vec,
       z_vec,
       phi,
     )
