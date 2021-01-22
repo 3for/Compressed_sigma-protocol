@@ -23,7 +23,6 @@ impl Pi_0_Proof {
   }
 
   pub fn mod_prove(
-    gens_1: &MultiCommitGens,
     gens_n: &MultiCommitGens,
     transcript: &mut Transcript,
     random_tape: &mut RandomTape,
@@ -40,7 +39,6 @@ impl Pi_0_Proof {
     y.append_to_transcript(b"y", transcript);
 
     let (r_vec, rho, A, t) = sigma_phase::commit_phase( 
-      &gens_1,
       &gens_n,
       transcript,
       random_tape,
@@ -65,7 +63,6 @@ impl Pi_0_Proof {
 
   pub fn mod_verify(
     &self,
-    gens_1: &MultiCommitGens,
     gens_n: &MultiCommitGens,
     transcript: &mut Transcript,
     a: &[Scalar],
@@ -73,7 +70,6 @@ impl Pi_0_Proof {
     y: &Scalar,
   ) -> Scalar {
     assert_eq!(gens_n.n, a.len());
-    assert_eq!(gens_1.n, 1);
 
     transcript.append_protocol_name(Pi_0_Proof::protocol_name());
     P.append_to_transcript(b"P", transcript);
@@ -103,7 +99,6 @@ impl Pi_0_Proof_Pure {
   }
 
   pub fn prove(
-    gens_1: &MultiCommitGens,
     gens_n: &MultiCommitGens,
     transcript: &mut Transcript,
     random_tape: &mut RandomTape,
@@ -120,7 +115,6 @@ impl Pi_0_Proof_Pure {
     y.append_to_transcript(b"y", transcript);
 
     let (r_vec, rho, A, t) = sigma_phase::commit_phase( 
-      &gens_1,
       &gens_n,
       transcript,
       random_tape,
@@ -145,7 +139,6 @@ impl Pi_0_Proof_Pure {
 
   pub fn verify(
     &self,
-    gens_1: &MultiCommitGens,
     gens_n: &MultiCommitGens,
     transcript: &mut Transcript,
     a: &[Scalar],
@@ -153,7 +146,6 @@ impl Pi_0_Proof_Pure {
     y: &Scalar,
   ) -> Result<(), ProofVerifyError> {
     assert_eq!(gens_n.n, a.len());
-    assert_eq!(gens_1.n, 1);
 
     transcript.append_protocol_name(Pi_0_Proof_Pure::protocol_name());
     P.append_to_transcript(b"P", transcript);
@@ -188,7 +180,6 @@ mod tests {
 
     let n = 1024;
 
-    let gens_1 = MultiCommitGens::new(1, b"test-two");
     let gens_1024 = MultiCommitGens::new(n, b"test-1024");
 
     let mut x: Vec<Scalar> = Vec::new();
@@ -203,7 +194,6 @@ mod tests {
     let mut random_tape = RandomTape::new(b"proof");
     let mut prover_transcript = Transcript::new(b"example");
     let (proof, P, y) = Pi_0_Proof_Pure::prove(
-      &gens_1,
       &gens_1024,
       &mut prover_transcript,
       &mut random_tape,
@@ -214,7 +204,7 @@ mod tests {
     
     let mut verifier_transcript = Transcript::new(b"example");
     assert!(proof
-      .verify(&gens_1, &gens_1024, &mut verifier_transcript, &a, &P, &y)
+      .verify(&gens_1024, &mut verifier_transcript, &a, &P, &y)
       .is_ok());
   }
 }

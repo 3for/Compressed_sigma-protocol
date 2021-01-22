@@ -9,7 +9,6 @@ use serde::{Deserialize, Serialize};
 use super::super::nizk::*;
 use crate::math::Math;
 use crate::nizk::bullet::BulletReductionProof;
-use crate::sigma_protocol::nozk_protocol_3::Pi_1_Proof;
 use crate::nizk::nozk_noinv_bullet::NoZKNoInvBulletReductionProof;
 use super::scalar_math;
 

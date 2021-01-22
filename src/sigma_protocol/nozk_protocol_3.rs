@@ -7,7 +7,6 @@ use super::super::commitments::{Commitments, MultiCommitGens};
 use super::super::errors::ProofVerifyError;
 use serde::{Deserialize, Serialize};
 use super::scalar_math;
-use crate::sigma_protocol::zk_basic_protocol_2::Pi_0_Proof;
 
 // Protocol 3 in the paper: Argument of Knowledge $\Pi_1$ for $R_1$
 #[derive(Debug, Serialize, Deserialize)]
@@ -24,11 +23,9 @@ impl Pi_1_Proof {
   pub fn mod_prove(
     gens_n: &MultiCommitGens,
     transcript: &mut Transcript,
-    random_tape: &mut RandomTape,
     z_vec: &[Scalar], //private info
     phi: &Scalar, //private info
     a_vec: &[Scalar], //public info.
-    proof_0: &Pi_0_Proof,
   ) -> (Pi_1_Proof, CompressedGroup, Scalar, Vec<Scalar>, Vec<Scalar>, Vec<GroupElement>) {
     transcript.append_protocol_name(Pi_1_Proof::protocol_name());
 

@@ -636,7 +636,6 @@ impl InnerPolyProductProofLog {
     a_vec: &[Scalar],
     blind_a: &Scalar,
     x_vec: &[Scalar],
-    y: &Scalar,
   ) -> (InnerPolyProductProofLog, CompressedGroup) {
     transcript.append_protocol_name(InnerPolyProductProofLog::protocol_name());
 
@@ -779,7 +778,6 @@ impl ThomasInnerPolyProductProofLog {
   pub fn prove(
     gens: &DotProductProofGens,
     transcript: &mut Transcript,
-    random_tape: &mut RandomTape,
     a_vec: &[Scalar],
     x_vec: &[Scalar],
     y: &Scalar,
@@ -1016,7 +1014,6 @@ mod tests {
       &a,
       &r_a,
       &x,
-      &y,
     );
 
     let mut verifier_transcript = Transcript::new(b"example");
@@ -1036,12 +1033,10 @@ mod tests {
     let x: Vec<Scalar> = (0..n).map(|_i| Scalar::random(&mut csprng)).collect();
     let a: Vec<Scalar> = (0..n).map(|_i| Scalar::random(&mut csprng)).collect();
     let y = DotProductProof::compute_dotproduct(&x, &a);
-    let mut random_tape = RandomTape::new(b"proof");
     let mut prover_transcript = Transcript::new(b"example");
     let (proof, Ca) = ThomasInnerPolyProductProofLog::prove(
       &gens,
       &mut prover_transcript,
-      &mut random_tape,
       &a,
       &x,
       &y,

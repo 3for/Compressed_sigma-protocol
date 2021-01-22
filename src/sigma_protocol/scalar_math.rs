@@ -7,9 +7,25 @@ pub fn compute_linearform(a: &[Scalar], b: &[Scalar]) -> Scalar {
   (0..a.len()).map(|i| a[i] * b[i]).sum()
 }
 
+/// Computes an inner product of two vectors
+/// \\[
+///    {\langle {\mathbf{a}}, {\mathbf{b}} \rangle} = \sum\_{i=0}^{n-1} a\_i \cdot b\_i.
+/// \\]
+/// Panics if the lengths of \\(\mathbf{a}\\) and \\(\mathbf{b}\\) are not equal.
+pub fn inner_product(a: &[Scalar], b: &[Scalar]) -> Scalar {
+  let mut out = Scalar::zero();
+  if a.len() != b.len() {
+    panic!("inner_product(a,b): lengths of vectors do not match");
+  }
+  for i in 0..a.len() {
+    out += a[i] * b[i];
+  }
+  out
+}
+
 // Creates a vector from the scalar `x`
 // contents of vector = <x, x^2, x^3, ..., x^s>
-pub fn vandemonde_challenge(mut x: Scalar, s: usize) -> Vec<Scalar> {
+pub fn vandemonde_challenge(x: Scalar, s: usize) -> Vec<Scalar> {
   let mut challenges: Vec<Scalar> = Vec::with_capacity(s);
   challenges.push(x);
   for i in 0..s-1 {

@@ -7,7 +7,6 @@ use super::super::commitments::{Commitments, MultiCommitGens};
 use super::scalar_math;
 
 pub fn commit_phase(
-  gens_1: &MultiCommitGens,
   gens_n: &MultiCommitGens,
   transcript: &mut Transcript,
   random_tape: &mut RandomTape,
@@ -15,7 +14,6 @@ pub fn commit_phase(
 ) -> (Vec<Scalar>, Scalar, CompressedGroup, Scalar) {
   let n = a_vec.len();
   assert_eq!(gens_n.n, a_vec.len());
-  assert_eq!(gens_1.n, 1);
 
   // produce randomness for the proofs
   let r_vec = random_tape.random_vector(b"r_vec", n);
