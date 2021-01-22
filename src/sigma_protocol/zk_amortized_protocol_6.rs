@@ -16,7 +16,7 @@ use super::scalar_math;
 pub struct Pi_OPEN_Am_Proof {
   proof: Pi_c_Am_Proof,
 }
-
+// same linear form, different $\vec{x}$
 impl Pi_OPEN_Am_Proof {
   fn protocol_name() -> &'static [u8] {
     b"open zk amortized compressed pi_c proof"
@@ -100,7 +100,7 @@ mod tests {
   use super::*;
   use rand::rngs::OsRng;
   #[test]
-  fn check_pi_c_Am_proof() {
+  fn check_pi_open_Am_proof() {
     let mut csprng: OsRng = OsRng;
 
     let n = 1023;

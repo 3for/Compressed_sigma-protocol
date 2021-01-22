@@ -34,6 +34,17 @@ pub fn vandemonde_challenge(x: Scalar, s: usize) -> Vec<Scalar> {
   challenges
 }
 
+// Creates a vector from the scalar `x`
+// contents of vector = <1, x, x^2, x^3, ..., x^{s-1}>
+pub fn vandemonde_challenge_one(x: Scalar, s: usize) -> Vec<Scalar> {
+  let mut challenges: Vec<Scalar> = Vec::with_capacity(s);
+  challenges.push(Scalar::one());
+  for i in 0..s-1 {
+    challenges.push(challenges[i] * x);
+  }
+  challenges
+}
+
 // Takes a matrix and a vector
 // Returns a new vector i.e. (Ax=b)
 pub fn matrix_vector_mul(matrix: &Vec<Vec<Scalar>>, vec: &[Scalar]) -> Vec<Scalar> {
