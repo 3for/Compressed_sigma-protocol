@@ -9,3 +9,5 @@ pub mod zk_amortized_protocol_5;
 pub mod zk_amortized_protocol_6;
 pub mod zk_protocol_7;
 pub mod zk_amortized_protocol_7;
+pub mod zk_protocol_9;
+
