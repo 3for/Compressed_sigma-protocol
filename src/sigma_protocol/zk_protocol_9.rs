@@ -53,6 +53,10 @@ impl Pi_shell_Proof_Pure {
   ) -> (Pi_shell_Proof_Pure, CompressedGroup, Scalar, CompressedGroup, Scalar, Vec<Scalar>, Vec<Scalar>) {
     assert_eq!(l1_vec.len(), l2_vec.len());
     transcript.append_protocol_name(Pi_shell_Proof_Pure::protocol_name());
+    
+    assert_eq!(gens_k1.h, gens_k2.h);
+    assert_eq!(gens_n.h, gens_k1.h);
+    
     // 1. public info
     let mut p1_vec = x1_vec.clone().to_vec();
     p1_vec.push(*u);
@@ -107,6 +111,9 @@ impl Pi_shell_Proof_Pure {
     let y12 = scalar_math::compute_linearform(&l1_hat_vec, &p2_vec);
     y12.append_to_transcript(b"y12", transcript);
 
+    assert_eq!(scalar_math::compute_linearform(&l1_hat_vec, &p1_vec), y1);
+    assert_eq!(scalar_math::compute_linearform(&l2_hat_vec, &p2_vec), y2);
+
     let r1 = Scalar::random(&mut csprng);
     let r2 = Scalar::random(&mut csprng);
     let eta1 = Scalar::random(&mut csprng);
@@ -129,12 +136,11 @@ impl Pi_shell_Proof_Pure {
 
     // 4. challenge
     let c = transcript.challenge_scalar(b"c");
-    println!("zyd prove c:{:?}", c);
 
     // 5. Prove
     let mut z_vec: Vec<Scalar> = Vec::new();
     for i in 0..n {
-      z_vec.push(l1_hat_vec[i] * c + l2_hat_vec[i] * c.square() + r_vec[i]);
+      z_vec.push(p1_vec[i] * c + p2_vec[i] * c.square() + r_vec[i]);
     }
     let phi = (gamma1 + psi1) * c + (gamma2 + psi2) * c.square() + omega;
     let z1_tilde = c * s1 + r1;
@@ -214,21 +220,15 @@ impl Pi_shell_Proof_Pure {
 
     // 4. challenge
     let c = transcript.challenge_scalar(b"c");
-    println!("zyd verify c:{:?}", c);
 
     // 5. Verify
     let mut result = self.z_vec.commit(&self.phi, gens_n) == self.A.unpack()?
     + c * (P1.unpack()?+ self.R1.unpack()?) + c.square() * (P2.unpack()? + self.R2.unpack()?);
-    println!("zyd 111 result:{:?}", result);
 
-    result &= c.square() * self.y12 + self.t1 == scalar_math::compute_linearform(&l1_hat_vec, &self.z_vec) - y1;
-    println!("zyd 222 result:{:?}", result);
-    result &= c.square() * self.y21 + self.t2 == scalar_math::compute_linearform(&l2_hat_vec, &self.z_vec) - y2;
-    println!("zyd 333 result:{:?}", result);
+    result &= c.square() * self.y12 + c * y1 + self.t1 == scalar_math::compute_linearform(&l1_hat_vec, &self.z_vec);
+    result &= c * self.y21 + c.square() * y2 + self.t2 == scalar_math::compute_linearform(&l2_hat_vec, &self.z_vec);
     result &= c * self.R1.unpack()? + self.A1.unpack()? == self.z1_tilde.commit(&self.phi1, gens_k1);
-    println!("zyd 444 result:{:?}", result);
     result &= c * self.R2.unpack()? + self.A2.unpack()? == self.z2_tilde.commit(&self.phi2, gens_k2);
-    println!("zyd 555 result:{:?}", result);
 
     if result {
       Ok(())
