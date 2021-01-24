@@ -143,7 +143,6 @@ impl Pi_P_Proof {
         c_vec,
         P_depressed_vec,
       ) + self.A.unpack()? == self.z.commit(&self.phi, &gens.gens_1);
-    println!("zyd verify result:{:?}", result);
 
     if !result {
       return Err(ProofVerifyError::InternalError);
