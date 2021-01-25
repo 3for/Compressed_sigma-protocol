@@ -3,7 +3,7 @@ use super::super::scalar::Scalar;
 use super::super::group::{CompressedGroup, CompressedGroupExt, GROUP_BASEPOINT};
 use merlin::Transcript;
 use super::super::random::RandomTape;
-use super::super::commitments::{Commitments, MultiCommitGens};
+use super::super::commitments::{MultiCommitGens, Commitments};
 use super::super::errors::ProofVerifyError;
 use serde::{Deserialize, Serialize};
 use super::super::nizk::*;

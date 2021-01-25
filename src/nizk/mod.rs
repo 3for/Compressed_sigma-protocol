@@ -12,9 +12,6 @@ use serde::{Deserialize, Serialize};
 pub mod bullet;
 use bullet::BulletReductionProof;
 
-pub mod nozk_bullet;
-use crate::nizk::nozk_bullet::NoZKBulletReductionProof;
-
 pub mod nozk_noinv_bullet;
 use crate::nizk::nozk_noinv_bullet::NoZKNoInvBulletReductionProof;
 

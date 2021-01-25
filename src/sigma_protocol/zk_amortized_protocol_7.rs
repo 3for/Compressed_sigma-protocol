@@ -1,9 +1,8 @@
 use super::super::transcript::{ProofTranscript};
 use super::super::scalar::Scalar;
-use super::super::group::{CompressedGroup, CompressedGroupExt, GroupElement, GROUP_BASEPOINT, VartimeMultiscalarMul};
+use super::super::group::{CompressedGroup};
 use merlin::Transcript;
 use super::super::random::RandomTape;
-use super::super::commitments::{MultiCommitGens};
 use super::super::errors::ProofVerifyError;
 use serde::{Deserialize, Serialize};
 use super::super::nizk::*;

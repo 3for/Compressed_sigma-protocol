@@ -20,7 +20,7 @@ mod math;
 mod scalar;
 mod sigma_protocol;
 mod nizk;
-
+mod polynomial;
 
 
 #[cfg(test)]
