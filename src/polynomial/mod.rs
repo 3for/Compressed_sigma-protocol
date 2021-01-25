@@ -14,7 +14,7 @@ pub trait Field:
     + Zero
     + One
     + Sync
-    + Ord
+    /*+ Ord*/
     + Neg<Output = Self>
     + Add<Self, Output = Self>
     + for<'a> Add<&'a Self, Output = Self>
@@ -58,8 +58,6 @@ pub trait Polynomial<F: Field>:
     Sized
     + Clone
     + Debug
-    + PartialEq
-    + Eq
     + Add
     + Neg
     + Zero
@@ -68,7 +66,7 @@ pub trait Polynomial<F: Field>:
     + for<'a> SubAssign<&'a Self>
 {
     /// The type of evaluation points for this polynomial.
-    type Point: Sized + Clone + Ord + Debug + Sync ;
+    type Point: Sized + Clone + Debug + Sync ;
 
     /// Returns the total degree of the polynomial
     fn degree(&self) -> usize;

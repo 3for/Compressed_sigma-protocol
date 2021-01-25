@@ -229,4 +229,38 @@ impl<F: Field> SparsePolynomial<F> {
 mod tests {
     use crate::polynomial::Polynomial;
     use crate::polynomial::univariate::{SparsePolynomial};
+    use rand_core::{CryptoRng, RngCore};
+    use crate::scalar::Scalar;
+    use std::cmp::max;
+
+    fn rand_sparse_poly<R: RngCore + CryptoRng>(degree: usize, rng: &mut R) -> SparsePolynomial<Scalar> {
+        // Initialize coeffs so that its guaranteed to have a x^{degree} term
+        let mut coeffs = vec![(degree, Scalar::random(rng))];
+        for i in 0..degree {
+            coeffs.push((i, Scalar::random(rng)));
+        }
+        SparsePolynomial::from_coefficients_vec(coeffs)
+    }
+
+    #[test]
+    fn add_polynomial() {
+        // Test adding polynomials by comparing against dense polynomial
+        let mut rng = rand::thread_rng();
+        for degree_a in 0..20 {
+            let sparse_poly_a = rand_sparse_poly(degree_a, &mut rng);
+            for degree_b in 0..20 {
+                let sparse_poly_b = rand_sparse_poly(degree_b, &mut rng);
+
+                // Test Add trait
+                let sparse_sum = sparse_poly_a.clone() + sparse_poly_b.clone();
+                assert_eq!(
+                    sparse_sum.degree(),
+                    max(degree_a, degree_b),
+                    "degree_a = {}, degree_b = {}",
+                    degree_a,
+                    degree_b
+                );
+            }
+        }
+    }
 }

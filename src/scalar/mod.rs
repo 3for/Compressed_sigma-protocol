@@ -1,3 +1,7 @@
+use crate::polynomial::Field;
+use core::fmt::Display;
+use num_traits::{Zero, One};
+
 mod ristretto255;
 
 pub type Scalar = ristretto255::Scalar;
@@ -41,3 +45,48 @@ impl ScalarBytesFromScalar for Scalar {
       .collect::<Vec<ScalarBytes>>()
   }
 }
+
+impl Field for Scalar {
+  fn square(&self) -> Self {
+    let mut result = *self;
+    result.square_in_place();
+    result
+  }
+
+  fn square_in_place(&mut self) -> &mut Self {
+    self.square();
+    self
+  }
+}
+
+impl Display for Scalar {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        write!(f, "Scalar{{\n\tbytes: {:?},\n}}", &self)
+    }
+}
+
+impl Zero for Scalar {
+    /// Returns the zero polynomial.
+    fn zero() -> Self {
+        Scalar::zero()
+    }
+
+    /// Checks if the given polynomial is zero.
+    fn is_zero(&self) -> bool {
+        *self == Scalar::zero()
+    }
+}
+
+impl One for Scalar {
+    /// Returns the zero polynomial.
+    fn one() -> Self {
+        Scalar::one()
+    }
+
+    /// Checks if the given polynomial is zero.
+    fn is_one(&self) -> bool {
+        *self == Scalar::one()
+    }
+}
+
+
