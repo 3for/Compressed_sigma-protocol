@@ -230,7 +230,7 @@ mod tests {
     use crate::polynomial::Polynomial;
     use crate::polynomial::univariate::{SparsePolynomial};
     use rand_core::{CryptoRng, RngCore};
-    use crate::scalar::Scalar;
+    use crate::scalar::{Scalar, ScalarFromPrimitives};
     use std::cmp::max;
 
     fn rand_sparse_poly<R: RngCore + CryptoRng>(degree: usize, rng: &mut R) -> SparsePolynomial<Scalar> {
@@ -262,5 +262,19 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn evaluate_at_point() {
+        let degree = 4;
+        let mut coeffs = vec![(degree, Scalar::one())];
+        for i in 0..degree {
+            coeffs.push((i, Scalar::one()));
+        }
+        let sparse_poly = SparsePolynomial::from_coefficients_vec(coeffs);
+
+        let pt = Scalar::one() + Scalar::one();
+
+        assert_eq!(sparse_poly.evaluate(&pt), (31 as usize).to_scalar());
     }
 }

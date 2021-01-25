@@ -54,7 +54,7 @@ impl Field for Scalar {
   }
 
   fn square_in_place(&mut self) -> &mut Self {
-    self.square();
+    *self = self.square();
     self
   }
 }
