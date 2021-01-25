@@ -174,7 +174,7 @@ impl NoZKNoInvBulletReductionProof {
     G: &[GroupElement],
   ) -> Result<(), ProofVerifyError> {
     assert_eq!(n, b.len());
-    let (ml_challenges, rev_ml_challenges, challenges) = self.verification_scalars(n, transcript)?;
+    let (_ml_challenges, rev_ml_challenges, challenges) = self.verification_scalars(n, transcript)?;
     
     let Ls = self
       .L_vec

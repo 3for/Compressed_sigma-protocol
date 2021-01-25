@@ -2,7 +2,6 @@ use super::super::transcript::{AppendToTranscript, ProofTranscript};
 use super::super::scalar::Scalar;
 use super::super::group::{CompressedGroup, CompressedGroupExt, GroupElement};
 use merlin::Transcript;
-use super::super::random::RandomTape;
 use super::super::commitments::{Commitments, MultiCommitGens};
 use super::super::errors::ProofVerifyError;
 use serde::{Deserialize, Serialize};
@@ -94,10 +93,8 @@ impl Pi_1_Proof_Pure {
 
   // non zeroknowledge, finally expose z_hat=[z_vec,phi] to Verifier.
   pub fn nozk_prove(
-    gens_1: &MultiCommitGens,
     gens_n: &MultiCommitGens,
     transcript: &mut Transcript,
-    random_tape: &mut RandomTape,
     z_vec: &[Scalar],
     phi: &Scalar,
     L_hat: &[Scalar],
@@ -142,10 +139,9 @@ impl Pi_1_Proof_Pure {
     y_hat.append_to_transcript(b"y_hat", transcript);
     
     let c_1 = transcript.challenge_scalar(b"c_1");
-    let mut result = false;
     match P_hat.unpack() {
       Ok(P) => {
-        result = P + (c_1 * y_hat) * gens_1.G[0] == self.z_hat[..self.z_hat.len()-1].commit(&self.z_hat[self.z_hat.len()-1], gens_n) + c_1 * scalar_math::compute_linearform(&L_hat, &self.z_hat) * gens_1.G[0];
+        let result = P + (c_1 * y_hat) * gens_1.G[0] == self.z_hat[..self.z_hat.len()-1].commit(&self.z_hat[self.z_hat.len()-1], gens_n) + c_1 * scalar_math::compute_linearform(&L_hat, &self.z_hat) * gens_1.G[0];
         if result {
           return Ok(())
         } else {
@@ -186,13 +182,10 @@ mod tests {
     let mut L_hat = a.clone().to_vec();
     L_hat.push(Scalar::zero());
 
-    let mut random_tape = RandomTape::new(b"proof");
     let mut prover_transcript = Transcript::new(b"example");
     let (proof_1, P_1, y_1) = Pi_1_Proof_Pure::nozk_prove(
-      &gens_1,
       &gens_1024,
       &mut prover_transcript,
-      &mut random_tape,
       &z,
       &r_z,
       &L_hat,

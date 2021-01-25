@@ -68,7 +68,7 @@ impl Pi_c_Am_Proof {
       h: GROUP_BASEPOINT,
     }; 
 
-    let (proof_2, Q) = Pi_2_Proof::mod_prove(
+    let (proof_2, _Q) = Pi_2_Proof::mod_prove(
       &gens_hat,
       &gens.gens_1,
       transcript,

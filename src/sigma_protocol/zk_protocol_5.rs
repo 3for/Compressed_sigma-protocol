@@ -3,7 +3,7 @@ use super::super::scalar::Scalar;
 use super::super::group::{CompressedGroup, CompressedGroupExt, GROUP_BASEPOINT};
 use merlin::Transcript;
 use super::super::random::RandomTape;
-use super::super::commitments::{MultiCommitGens, Commitments};
+use super::super::commitments::{MultiCommitGens};
 use super::super::errors::ProofVerifyError;
 use serde::{Deserialize, Serialize};
 use super::super::nizk::*;
@@ -50,7 +50,7 @@ impl Pi_c_Proof {
       &y,
     );
 
-    let (proof_1, P_hat, y_hat, L_tilde, z_hat, G_hat_vec) = Pi_1_Proof::mod_prove(
+    let (proof_1, P_hat, _y_hat, L_tilde, z_hat, G_hat_vec) = Pi_1_Proof::mod_prove(
       &gens.gens_n,
       transcript,
       &z_vec,
@@ -64,7 +64,7 @@ impl Pi_c_Proof {
       h: GROUP_BASEPOINT,
     }; 
 
-    let (proof_2, Q) = Pi_2_Proof::mod_prove(
+    let (proof_2, _Q) = Pi_2_Proof::mod_prove(
       &gens_hat,
       &gens.gens_1,
       transcript,
@@ -150,6 +150,7 @@ impl Pi_c_Proof {
 mod tests {
   use super::*;
   use rand::rngs::OsRng;
+  use crate::commitments::Commitments;
   #[test]
   fn check_pi_c_proof() {
     let mut csprng: OsRng = OsRng;

@@ -777,7 +777,6 @@ impl ThomasInnerPolyProductProofLog {
     transcript: &mut Transcript,
     a_vec: &[Scalar],
     x_vec: &[Scalar],
-    y: &Scalar,
   ) -> (ThomasInnerPolyProductProofLog, CompressedGroup) {
     transcript.append_protocol_name(ThomasInnerPolyProductProofLog::protocol_name());
 
@@ -1036,7 +1035,6 @@ mod tests {
       &mut prover_transcript,
       &a,
       &x,
-      &y,
     );
 
     let mut verifier_transcript = Transcript::new(b"example");

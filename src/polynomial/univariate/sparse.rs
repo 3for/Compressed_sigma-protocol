@@ -1,6 +1,6 @@
 use crate::polynomial::Field;
 use std::fmt;
-use num_traits::{One, Zero};
+use num_traits::{Zero};
 use std::ops::{Add, AddAssign, Neg, SubAssign};
 use std::collections::BTreeMap;
 use crate::polynomial::Polynomial;

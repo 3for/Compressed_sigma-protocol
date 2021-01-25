@@ -108,7 +108,6 @@ impl Pi_2_Proof_hyraxZK {
     z_vec: &[Scalar],
     blind_z: &Scalar,
     l_vec: &[Scalar],
-    y: &Scalar,
   ) -> (Pi_2_Proof_hyraxZK, CompressedGroup) {
     transcript.append_protocol_name(Pi_2_Proof_hyraxZK::protocol_name());
 
@@ -264,7 +263,6 @@ mod tests {
       &z,
       &r_z,
       &l,
-      &y,
     );
 
     let mut verifier_transcript = Transcript::new(b"example");
