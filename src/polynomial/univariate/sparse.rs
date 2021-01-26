@@ -232,6 +232,7 @@ mod tests {
     use rand_core::{CryptoRng, RngCore};
     use crate::scalar::{Scalar, ScalarFromPrimitives};
     use std::cmp::max;
+    use num_traits::Zero;
 
     fn rand_sparse_poly<R: RngCore + CryptoRng>(degree: usize, rng: &mut R) -> SparsePolynomial<Scalar> {
         // Initialize coeffs so that its guaranteed to have a x^{degree} term
@@ -277,4 +278,53 @@ mod tests {
 
         assert_eq!(sparse_poly.evaluate(&pt), (31 as usize).to_scalar());
     }
+
+    #[test]
+    fn polynomial_additive_identity() {
+        // Test adding polynomials with its negative equals 0
+        let mut rng = rand::thread_rng();
+        for degree in 0..70 {
+            // Test with Neg trait
+            let sparse_poly = rand_sparse_poly(degree, &mut rng);
+            let neg = -sparse_poly.clone();
+            assert!((sparse_poly + neg).is_zero());
+
+            // Test with SubAssign trait
+            let sparse_poly = rand_sparse_poly(degree, &mut rng);
+            let mut result = sparse_poly.clone();
+            result -= &sparse_poly;
+            assert!(result.is_zero());
+        }
+    }
+
+    #[test]
+    fn mul_polynomial() {
+        // Test multiplying polynomials over their domains, and over the native representation.
+        // The expected result is obtained by comparing against dense polynomial
+        let mut rng = rand::thread_rng();
+        for degree_a in 0..20 {
+            let sparse_poly_a = rand_sparse_poly(degree_a, &mut rng);
+            for degree_b in 0..20 {
+                let sparse_poly_b = rand_sparse_poly(degree_b, &mut rng);
+
+                // Test multiplying the polynomials over their native representation
+                let sparse_prod = sparse_poly_a.mul(&sparse_poly_b);
+                assert_eq!(
+                    sparse_prod.degree(),
+                    degree_a + degree_b,
+                    "degree_a = {}, degree_b = {}",
+                    degree_a,
+                    degree_b
+                );
+
+                // Test multiplying the polynomials over their evaluations and interpolating
+                let pt = Scalar::random(&mut rng);
+                let poly_a_evals = sparse_poly_a.evaluate(&pt);
+                let poly_b_evals = sparse_poly_b.evaluate(&pt);
+                let poly_prod_evals = sparse_prod.evaluate(&pt);
+                assert_eq!(poly_a_evals.mul(&poly_b_evals), poly_prod_evals);
+            }
+        }
+    }
+
 }
