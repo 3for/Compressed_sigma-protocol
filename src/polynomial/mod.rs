@@ -3,6 +3,7 @@ pub mod univariate;
 use num_traits::{One, Zero};
 use std::fmt::{Debug, Display};
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
+use rand_core::{CryptoRng, RngCore};
 
 /// The interface for a generic field.
 pub trait Field:
@@ -51,6 +52,13 @@ pub trait Field:
         }
         res
     }
+
+    /// Computes the multiplicative inverse of `self` if `self` is nonzero.
+    #[must_use]
+    fn inverse(&self) -> Option<Self>;
+
+    // Sets `self` to `self`'s inverse if it exists. Otherwise it is a no-op.
+    fn inverse_in_place(&mut self) -> Option<&mut Self>;
 }
 
 /// Describes the common interface for univariate and multivariate polynomials
@@ -109,4 +117,21 @@ impl<Slice: AsRef<[u64]>> Iterator for BitIteratorBE<Slice> {
             Some(self.s.as_ref()[part] & (1 << bit) > 0)
         }
     }
+}
+
+
+/// Describes the interface for univariate polynomials
+pub trait UVPolynomial<F: Field>: Polynomial<F, Point = F> {
+    /// Constructs a new polynomial from a list of coefficients.
+    fn from_coefficients_slice(coeffs: &[F]) -> Self;
+
+    /// Constructs a new polynomial from a list of coefficients.
+    fn from_coefficients_vec(coeffs: Vec<F>) -> Self;
+
+    /// Returns the coefficients of `self`
+    fn coeffs(&self) -> &[F];
+
+    /// Returns a univariate polynomial of degree `d` where each
+    /// coefficient is sampled uniformly at random.
+    fn rand<R: RngCore + CryptoRng>(d: usize, rng: &mut R) -> Self;
 }

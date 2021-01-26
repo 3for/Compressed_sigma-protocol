@@ -3,7 +3,8 @@ use std::fmt;
 use num_traits::{Zero};
 use std::ops::{Add, AddAssign, Neg, SubAssign};
 use std::collections::BTreeMap;
-use crate::polynomial::Polynomial;
+use crate::polynomial::{Polynomial, UVPolynomial};
+use crate::polynomial::univariate::{DenseOrSparsePolynomial, DensePolynomial};
 
 /// Stores a sparse polynomial in coefficient form.
 #[derive(Clone, PartialEq, Eq, Default)]
@@ -222,6 +223,29 @@ impl<F: Field> SparsePolynomial<F> {
         for (i, elem) in append_coeffs.iter() {
             self.coeffs.push((*i, *elem));
         }
+    }
+}
+
+impl<F: Field> Into<DensePolynomial<F>> for SparsePolynomial<F> {
+    fn into(self) -> DensePolynomial<F> {
+        let mut other = vec![F::zero(); self.degree() + 1];
+        for (i, coeff) in self.coeffs {
+            other[i] = coeff;
+        }
+        DensePolynomial::from_coefficients_vec(other)
+    }
+}
+
+impl<F: Field> From<DensePolynomial<F>> for SparsePolynomial<F> {
+    fn from(dense_poly: DensePolynomial<F>) -> SparsePolynomial<F> {
+        let coeffs = dense_poly.coeffs();
+        let mut sparse_coeffs = Vec::<(usize, F)>::new();
+        for i in 0..coeffs.len() {
+            if !coeffs[i].is_zero() {
+                sparse_coeffs.push((i, coeffs[i]));
+            }
+        }
+        SparsePolynomial::from_coefficients_vec(sparse_coeffs)
     }
 }
 

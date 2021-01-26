@@ -57,6 +57,17 @@ impl Field for Scalar {
     *self = self.square();
     self
   }
+
+  fn inverse(&self) -> Self {
+    let mut result = *self;
+    result.inverse_in_place();
+    result
+  }
+
+  fn inverse_in_place(&mut self) -> &mut Self {
+    *self = self.unwrap().invert();
+    Option<self>
+  }
 }
 
 impl Display for Scalar {
