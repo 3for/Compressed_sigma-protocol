@@ -61,7 +61,7 @@ impl<F: Field> Polynomial<F> for SparsePolynomial<F> {
         let total = self
             .coeffs
             .iter()
-            .map(|(i, c)| (*c * point.pow(&[*i as u64])))
+            .map(|(i, c)| (*c * point.power(&[*i as u64])))
             .sum();
         total
     }
@@ -252,7 +252,7 @@ impl<F: Field> From<DensePolynomial<F>> for SparsePolynomial<F> {
 #[cfg(test)]
 mod tests {
     use crate::polynomial::Polynomial;
-    use crate::polynomial::univariate::{SparsePolynomial};
+    use crate::polynomial::univariate::{SparsePolynomial, DensePolynomial};
     use rand_core::{CryptoRng, RngCore};
     use crate::scalar::{Scalar, ScalarFromPrimitives};
     use std::cmp::max;
@@ -273,8 +273,10 @@ mod tests {
         let mut rng = rand::thread_rng();
         for degree_a in 0..20 {
             let sparse_poly_a = rand_sparse_poly(degree_a, &mut rng);
+            let dense_poly_a: DensePolynomial<Scalar> = sparse_poly_a.clone().into();
             for degree_b in 0..20 {
                 let sparse_poly_b = rand_sparse_poly(degree_b, &mut rng);
+                let dense_poly_b: DensePolynomial<Scalar> = sparse_poly_b.clone().into();
 
                 // Test Add trait
                 let sparse_sum = sparse_poly_a.clone() + sparse_poly_b.clone();
@@ -285,12 +287,29 @@ mod tests {
                     degree_a,
                     degree_b
                 );
+
+                let actual_dense_sum: DensePolynomial<Scalar> = sparse_sum.into();
+                let expected_dense_sum = dense_poly_a.clone() + dense_poly_b;
+                assert_eq!(
+                    actual_dense_sum, expected_dense_sum,
+                    "degree_a = {}, degree_b = {}",
+                    degree_a, degree_b
+                );
+                // Test AddAssign Trait
+                let mut sparse_add_assign_sum = sparse_poly_a.clone();
+                sparse_add_assign_sum += &sparse_poly_b;
+                let actual_add_assign_dense_sum: DensePolynomial<Scalar> = sparse_add_assign_sum.into();
+                assert_eq!(
+                    actual_add_assign_dense_sum, expected_dense_sum,
+                    "degree_a = {}, degree_b = {}",
+                    degree_a, degree_b
+                );
             }
         }
     }
 
     #[test]
-    fn evaluate_at_point() {
+    fn evaluate_at_point_a() {
         let degree = 4;
         let mut coeffs = vec![(degree, Scalar::one())];
         for i in 0..degree {
@@ -301,6 +320,18 @@ mod tests {
         let pt = Scalar::one() + Scalar::one();
 
         assert_eq!(sparse_poly.evaluate(&pt), (31 as usize).to_scalar());
+    }
+
+    #[test]
+    fn evaluate_at_point() {
+        let mut rng = rand::thread_rng();
+        // Test evaluation at point by comparing against DensePolynomial
+        for degree in 0..60 {
+            let sparse_poly = rand_sparse_poly(degree, &mut rng);
+            let dense_poly: DensePolynomial<Scalar> = sparse_poly.clone().into();
+            let pt = Scalar::random(&mut rng);
+            assert_eq!(sparse_poly.evaluate(&pt), dense_poly.evaluate(&pt));
+        }
     }
 
     #[test]
@@ -328,14 +359,26 @@ mod tests {
         let mut rng = rand::thread_rng();
         for degree_a in 0..20 {
             let sparse_poly_a = rand_sparse_poly(degree_a, &mut rng);
+            let dense_poly_a: DensePolynomial<Scalar> = sparse_poly_a.clone().into();
             for degree_b in 0..20 {
                 let sparse_poly_b = rand_sparse_poly(degree_b, &mut rng);
+                let dense_poly_b: DensePolynomial<Scalar> = sparse_poly_b.clone().into();
 
                 // Test multiplying the polynomials over their native representation
                 let sparse_prod = sparse_poly_a.mul(&sparse_poly_b);
                 assert_eq!(
                     sparse_prod.degree(),
                     degree_a + degree_b,
+                    "degree_a = {}, degree_b = {}",
+                    degree_a,
+                    degree_b
+                );
+
+                let dense_prod = dense_poly_a.naive_mul(&dense_poly_b);
+                assert_eq!(sparse_prod.degree(), dense_prod.degree());
+                assert_eq!(
+                    sparse_prod,
+                    SparsePolynomial::<Scalar>::from(dense_prod),
                     "degree_a = {}, degree_b = {}",
                     degree_a,
                     degree_b

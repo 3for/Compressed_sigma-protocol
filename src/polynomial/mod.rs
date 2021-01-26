@@ -30,7 +30,10 @@ pub trait Field:
     + core::iter::Sum<Self>
     + for<'a> core::iter::Sum<&'a Self>
 {
-     /// Returns `self * self`.
+    /// Returns an element chosen uniformly at random using a user-provided RNG.
+    fn random<R: RngCore + CryptoRng>(rng: &mut R) -> Self ;
+
+    /// Returns `self * self`.
     #[must_use]
     fn square(&self) -> Self;
 
@@ -40,7 +43,7 @@ pub trait Field:
     /// Exponentiates this element by a number represented with `u64` limbs,
     /// least significant limb first.
     #[must_use]
-    fn pow<S: AsRef<[u64]>>(&self, exp: S) -> Self {
+    fn power<S: AsRef<[u64]>>(&self, exp: S) -> Self {
         let mut res = Self::one();
 
         for i in BitIteratorBE::without_leading_zeros(exp) {

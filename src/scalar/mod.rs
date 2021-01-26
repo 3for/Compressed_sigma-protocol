@@ -1,6 +1,7 @@
 use crate::polynomial::Field;
 use core::fmt::Display;
 use num_traits::{Zero, One};
+use rand_core::{CryptoRng, RngCore};
 
 mod ristretto255;
 
@@ -58,15 +59,17 @@ impl Field for Scalar {
     self
   }
 
-  fn inverse(&self) -> Self {
-    let mut result = *self;
-    result.inverse_in_place();
-    result
+  fn inverse(&self) -> Option<Self> {
+    Some(self.invert().unwrap())
   }
 
-  fn inverse_in_place(&mut self) -> &mut Self {
-    *self = self.unwrap().invert();
-    Option<self>
+  fn inverse_in_place(&mut self) -> Option<&mut Self> {
+    *self = self.invert().unwrap();
+    Some(self)
+  }
+
+  fn random<R: RngCore + CryptoRng>(rng: &mut R) -> Self {
+    Scalar::random(rng)
   }
 }
 
