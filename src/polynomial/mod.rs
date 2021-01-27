@@ -1,5 +1,7 @@
 pub mod univariate;
 
+pub mod lagrange;
+
 use num_traits::{One, Zero};
 use std::fmt::{Debug, Display};
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
