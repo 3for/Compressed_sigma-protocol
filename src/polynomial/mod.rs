@@ -25,6 +25,8 @@ pub trait Field:
     + for<'a> Mul<&'a Self, Output = Self>
     + AddAssign<Self>
     + for<'a> AddAssign<&'a Self>
+    + Sub<Self, Output = Self>
+    + for<'a> Sub<&'a Self, Output = Self>
     + SubAssign<Self>
     + for<'a> SubAssign<&'a Self>
     + MulAssign<Self>
