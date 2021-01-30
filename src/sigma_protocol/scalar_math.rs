@@ -71,3 +71,12 @@ pub fn matrix_transpose(matrix: &Vec<Vec<Scalar>>) -> Vec<Vec<Scalar>> {
 
     transpose
 }
+
+
+pub fn zeros(size: usize) -> Vec<Scalar> {
+  let mut zero_vec: Vec<Scalar> = Vec::with_capacity(size as usize);
+  for _ in 0..size {
+    zero_vec.push(Scalar::zero());
+  }
+  return zero_vec;
+}

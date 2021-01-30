@@ -63,13 +63,13 @@ impl<F: Field + std::cmp::PartialEq> LagrangePolynomial<F> {
     }
 }
 
-struct LagrangePolynomialDirect<F: Field> {
+pub struct LagrangePolynomialDirect<F: Field> {
     /// The coefficient of `x^i` is stored at location `k` in `self.coeffs`.
-    pub ds_poly: DensePolynomial<F>,
+    pub lg_poly: DensePolynomial<F>,
 }
 
 impl<F: Field + std::cmp::PartialEq> LagrangePolynomialDirect<F> {
-    fn new(coeffs: &[(F, F)]) -> Self {
+    pub fn new(coeffs: &[(F, F)]) -> Self {
         let n = coeffs.len();
         let mut total_poly = DensePolynomial::from_coefficients_vec(vec![F::zero()]);
         for i in 0..n {
@@ -88,18 +88,18 @@ impl<F: Field + std::cmp::PartialEq> LagrangePolynomialDirect<F> {
             total_poly = &total_poly + &term.naive_mul(&DensePolynomial::from_coefficients_vec(vec![y]));
         }
         LagrangePolynomialDirect {
-            ds_poly: total_poly,
+            lg_poly: total_poly,
         }
     }
 
     /// Evaluates `self` at the given `point` in `Self::Point`.
-    fn evaluate(&self, point: &F) -> F {
-        if self.ds_poly.coeffs.len() == 0 {
+    pub fn evaluate(&self, point: &F) -> F {
+        if self.lg_poly.coeffs.len() == 0 {
             return F::zero();
         } else if point.is_zero() {
-            return self.ds_poly.coeffs[0];
+            return self.lg_poly.coeffs[0];
         }
-        self.ds_poly.evaluate(point)
+        self.lg_poly.evaluate(point)
     }
 }
 
