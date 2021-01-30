@@ -10,10 +10,10 @@ use super::super::nizk::*;
 use crate::sigma_protocol::zk_protocol_7::Pi_NULLITY_Proof;
 use super::scalar_math;
 
-// // Protocol 4 in the paper: Compressed Proof of Knowledge $\Pi_OPEN$ 
+// // Protocol 8 in the paper: Compressed Proof of Knowledge $\Pi_cs$ 
 #[derive(Debug, Serialize, Deserialize)]
 #[allow(non_camel_case_types)]
-pub struct Pi_P_Proof {
+pub struct Pi_cs_Proof {
   proof: Pi_NULLITY_Proof,
   A: CompressedGroup,
   Py: CompressedGroup,
@@ -22,9 +22,9 @@ pub struct Pi_P_Proof {
   P_hat: CompressedGroup,
 }
 // different linear forms, same $\vec{x}$
-impl Pi_P_Proof {
+impl Pi_cs_Proof {
   fn protocol_name() -> &'static [u8] {
-    b"zk pi_p proof"
+    b"zk pi_cs proof"
   }
 
   pub fn prove(
@@ -34,8 +34,8 @@ impl Pi_P_Proof {
     v_vec: &[Scalar],
     gamma_vec: &[Scalar],
     aux_vec: &[Scalar],
-  ) -> (Pi_P_Proof, Vec<CompressedGroup>) {
-    transcript.append_protocol_name(Pi_P_Proof::protocol_name());
+  ) -> (Pi_cs_Proof, Vec<CompressedGroup>) {
+    transcript.append_protocol_name(Pi_cs_Proof::protocol_name());
 
     let s = v_vec.len();
     let t = aux_vec.len();
@@ -89,7 +89,7 @@ impl Pi_P_Proof {
     assert_eq!(y, z);
 
     (
-      Pi_P_Proof{
+      Pi_cs_Proof{
         proof,
         A,
         Py,
@@ -110,7 +110,7 @@ impl Pi_P_Proof {
   ) -> Result<(), ProofVerifyError> {
     assert!(gens.gens_n.n >= n);
 
-    transcript.append_protocol_name(Pi_P_Proof::protocol_name());
+    transcript.append_protocol_name(Pi_cs_Proof::protocol_name());
     
     let s = P_vec.len();
     for i in 0..s {
@@ -190,7 +190,7 @@ mod tests {
 
     let mut random_tape = RandomTape::new(b"proof");
     let mut prover_transcript = Transcript::new(b"example");
-    let (proof, P_vec) = Pi_P_Proof::prove(
+    let (proof, P_vec) = Pi_cs_Proof::prove(
       &gens,
       &mut prover_transcript,
       &mut random_tape,

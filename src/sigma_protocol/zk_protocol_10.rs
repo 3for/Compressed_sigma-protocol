@@ -10,7 +10,7 @@ use super::super::nizk::*;
 use crate::sigma_protocol::zk_protocol_7::Pi_NULLITY_Proof;
 use super::scalar_math;
 
-// // Protocol 4 in the paper: Compressed Proof of Knowledge $\Pi_OPEN$ 
+// // Protocol 10 in the paper: Compressed Proof of Knowledge $\Pi_P$ 
 #[derive(Debug, Serialize, Deserialize)]
 #[allow(non_camel_case_types)]
 pub struct Pi_P_Proof {

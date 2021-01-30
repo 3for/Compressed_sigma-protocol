@@ -63,12 +63,12 @@ impl<F: Field + std::cmp::PartialEq> LagrangePolynomial<F> {
     }
 }
 
-struct LagrangePolynomial_direct<F: Field> {
+struct LagrangePolynomialDirect<F: Field> {
     /// The coefficient of `x^i` is stored at location `k` in `self.coeffs`.
     pub ds_poly: DensePolynomial<F>,
 }
 
-impl<F: Field + std::cmp::PartialEq> LagrangePolynomial_direct<F> {
+impl<F: Field + std::cmp::PartialEq> LagrangePolynomialDirect<F> {
     fn new(coeffs: &[(F, F)]) -> Self {
         let n = coeffs.len();
         let mut total_poly = DensePolynomial::from_coefficients_vec(vec![F::zero()]);
@@ -87,7 +87,7 @@ impl<F: Field + std::cmp::PartialEq> LagrangePolynomial_direct<F> {
             
             total_poly = &total_poly + &term.naive_mul(&DensePolynomial::from_coefficients_vec(vec![y]));
         }
-        LagrangePolynomial_direct {
+        LagrangePolynomialDirect {
             ds_poly: total_poly,
         }
     }
@@ -139,7 +139,7 @@ mod tests {
             x.push((Scalar::random(&mut csprng), Scalar::random(&mut csprng)));
         }
         
-        let P = LagrangePolynomial_direct::new(&x);
+        let P = LagrangePolynomialDirect::new(&x);
 
         for i in 0..n {
             assert_eq!(P.evaluate(&(x[i].0)), x[i].1);
