@@ -63,16 +63,56 @@ impl<F: Field + std::cmp::PartialEq> LagrangePolynomial<F> {
     }
 }
 
+struct LagrangePolynomial_direct<F: Field> {
+    /// The coefficient of `x^i` is stored at location `k` in `self.coeffs`.
+    pub ds_poly: DensePolynomial<F>,
+}
+
+impl<F: Field + std::cmp::PartialEq> LagrangePolynomial_direct<F> {
+    fn new(coeffs: &[(F, F)]) -> Self {
+        let n = coeffs.len();
+        let mut total_poly = DensePolynomial::from_coefficients_vec(vec![F::zero()]);
+        for i in 0..n {
+            let mut y = coeffs[i].1;
+            let mut term = DensePolynomial::from_coefficients_vec(vec![F::one()]);
+            let mut denominator = F::one();
+            for j in 0..n {
+                if i != j {
+                    assert!(coeffs[i].0 != coeffs[j].0);
+                    denominator = denominator * (coeffs[i].0 - coeffs[j].0);
+                    term = term.naive_mul(&DensePolynomial::from_coefficients_vec(vec![-coeffs[j].0, F::one()]));
+                }
+            }
+            y = y * denominator.inverse().unwrap();                    
+            
+            total_poly = &total_poly + &term.naive_mul(&DensePolynomial::from_coefficients_vec(vec![y]));
+        }
+        LagrangePolynomial_direct {
+            ds_poly: total_poly,
+        }
+    }
+
+    /// Evaluates `self` at the given `point` in `Self::Point`.
+    fn evaluate(&self, point: &F) -> F {
+        if self.ds_poly.coeffs.len() == 0 {
+            return F::zero();
+        } else if point.is_zero() {
+            return self.ds_poly.coeffs[0];
+        }
+        self.ds_poly.evaluate(point)
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::polynomial::lagrange::LagrangePolynomial;
+    use crate::polynomial::lagrange::*;
     use rand_core::{CryptoRng, RngCore};
     use crate::scalar::{Scalar, ScalarFromPrimitives};
     use std::cmp::max;
     use num_traits::Zero;
     use rand::rngs::OsRng;
     
-     #[test]
+    #[test]
     fn lagrangePolynomial_evaluate() {
         let mut csprng: OsRng = OsRng;
         let n = 100;
@@ -83,6 +123,23 @@ mod tests {
         }
         
         let P = LagrangePolynomial::new(&x);
+
+        for i in 0..n {
+            assert_eq!(P.evaluate(&(x[i].0)), x[i].1);
+        }
+    }
+
+    #[test]
+    fn lagrangePolynomial_direct_evaluate() {
+        let mut csprng: OsRng = OsRng;
+        let n = 100;
+
+        let mut x: Vec<(Scalar, Scalar)> = Vec::new();
+        for _ in 0..n {
+            x.push((Scalar::random(&mut csprng), Scalar::random(&mut csprng)));
+        }
+        
+        let P = LagrangePolynomial_direct::new(&x);
 
         for i in 0..n {
             assert_eq!(P.evaluate(&(x[i].0)), x[i].1);
