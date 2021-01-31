@@ -103,6 +103,55 @@ impl<F: Field + std::cmp::PartialEq> LagrangePolynomialDirect<F> {
     }
 }
 
+pub struct LagrangePolynomialLinear<F: Field> {
+    /// The coefficient of `f(k)`, of the form `\prod_{k=1,i\neq k}^{m}(X-i)/(\prod_{k=1,i\neq k}^{m}(k-i))`.
+    pub coeff_polys: Vec<DensePolynomial<F>>,
+    pub fk_coeffs: Vec<F>,
+}
+
+impl<F: Field + std::cmp::PartialEq> LagrangePolynomialLinear<F> {
+    pub fn new(coeffs: &[(F, F)]) -> Self {
+        let n = coeffs.len();
+        
+        let mut coeff_polys: Vec<DensePolynomial<F>> = Vec::new();
+        let mut fk_coeffs: Vec<F> = Vec::new();
+        for i in 0..n {
+            fk_coeffs.push(coeffs[i].1);
+            let mut term = DensePolynomial::from_coefficients_vec(vec![F::one()]);
+            let mut denominator = F::one();
+            for j in 0..n {
+                if i != j {
+                    assert!(coeffs[i].0 != coeffs[j].0);
+                    denominator = denominator * (coeffs[i].0 - coeffs[j].0);
+                    term = term.naive_mul(&DensePolynomial::from_coefficients_vec(vec![-coeffs[j].0, F::one()]));
+                }
+            }
+            term = term.naive_mul(&DensePolynomial::from_coefficients_vec(vec![denominator.inverse().unwrap()]));                    
+            coeff_polys.push(term);
+        }
+        LagrangePolynomialLinear {
+            coeff_polys: coeff_polys,
+            fk_coeffs: fk_coeffs,
+        }
+    }
+
+    /// Evaluates `self` at the given `point` in `Self::Point`.
+    pub fn evaluate(&self, point: &F) -> F {
+        if self.fk_coeffs.len() == 0 {
+            return F::zero();
+        } 
+        let n = self.fk_coeffs.len();
+
+        let mut total= F::zero();
+
+        for i in 0..n {
+            total = total + self.fk_coeffs[i] * self.coeff_polys[i].evaluate(point);
+        }
+
+        total
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::polynomial::lagrange::*;
@@ -140,6 +189,23 @@ mod tests {
         }
         
         let P = LagrangePolynomialDirect::new(&x);
+
+        for i in 0..n {
+            assert_eq!(P.evaluate(&(x[i].0)), x[i].1);
+        }
+    }
+
+    #[test]
+    fn lagrangePolynomial_linear_evaluate() {
+        let mut csprng: OsRng = OsRng;
+        let n = 100;
+
+        let mut x: Vec<(Scalar, Scalar)> = Vec::new();
+        for _ in 0..n {
+            x.push((Scalar::random(&mut csprng), Scalar::random(&mut csprng)));
+        }
+        
+        let P = LagrangePolynomialLinear::new(&x);
 
         for i in 0..n {
             assert_eq!(P.evaluate(&(x[i].0)), x[i].1);

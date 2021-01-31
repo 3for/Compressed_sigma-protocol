@@ -72,11 +72,26 @@ pub fn matrix_transpose(matrix: &Vec<Vec<Scalar>>) -> Vec<Vec<Scalar>> {
     transpose
 }
 
+// Takes a scalar and a vector
+// Returns a new vector i.e. (a\vec{x}=[a*x_1,...,a*x_n])
+pub fn scalar_vector_mul(a: &Scalar, vec: &[Scalar]) -> Vec<Scalar> {
+    vec.iter().map(|v| a * v).collect()
+}
+
 
 pub fn zeros(size: usize) -> Vec<Scalar> {
   let mut zero_vec: Vec<Scalar> = Vec::with_capacity(size as usize);
   for _ in 0..size {
     zero_vec.push(Scalar::zero());
+  }
+  return zero_vec;
+}
+
+pub fn negOnes(size: usize) -> Vec<Scalar> {
+  let mut zero_vec: Vec<Scalar> = Vec::with_capacity(size as usize);
+  let negOne = -Scalar::one();
+  for _ in 0..size {
+    zero_vec.push(negOne);
   }
   return zero_vec;
 }
