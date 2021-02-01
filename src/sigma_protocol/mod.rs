@@ -12,3 +12,4 @@ pub mod zk_amortized_protocol_7;
 pub mod zk_protocol_9;
 pub mod zk_protocol_10;
 pub mod zk_protocol_8;
+pub mod zk_protocol_11;
