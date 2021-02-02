@@ -150,7 +150,7 @@ impl Pi_c_Proof {
 mod tests {
   use super::*;
   use rand::rngs::OsRng;
-  use crate::commitments::Commitments;
+  
   #[test]
   fn check_pi_c_proof() {
     let mut csprng: OsRng = OsRng;
@@ -164,7 +164,6 @@ mod tests {
     let y = DotProductProof::compute_dotproduct(&l, &z);
 
     let r_z = Scalar::random(&mut csprng);
-    let Cz = z.commit(&r_z, &gens.gens_n).compress();
 
     let mut random_tape = RandomTape::new(b"proof");
     let mut prover_transcript = Transcript::new(b"example");

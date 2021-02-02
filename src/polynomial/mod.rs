@@ -4,7 +4,7 @@ pub mod lagrange;
 
 use num_traits::{One, Zero};
 use std::fmt::{Debug, Display};
-use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
+use std::ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 use rand_core::{CryptoRng, RngCore};
 
 /// The interface for a generic field.

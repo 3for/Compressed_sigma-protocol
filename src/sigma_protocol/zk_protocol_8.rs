@@ -1,6 +1,6 @@
 use super::super::transcript::{ProofTranscript, AppendToTranscript};
 use super::super::scalar::Scalar;
-use super::super::group::{CompressedGroup, CompressedGroupExt, GroupElement, VartimeMultiscalarMul};
+use super::super::group::{CompressedGroup};
 use merlin::Transcript;
 use super::super::random::RandomTape;
 use super::super::commitments::{Commitments};
@@ -44,7 +44,6 @@ impl Pi_cs_Proof {
     let n = gens.gens_n.n;
     let nx = x_vec.len();
     let m = alpha_vec.len();
-    let s = out_vec.len();
 
     let mut f_vec = alpha_vec.to_vec().clone();
     let mut g_vec = beta_vec.to_vec().clone();
@@ -172,7 +171,7 @@ impl Pi_cs_Proof {
       assert_eq!(scalar_math::compute_linearform(&l_matrix_new[i], &y_vec), Scalar::zero());
     }
 
-    let (proof, P, P_hat, y) = Pi_NULLITY_Proof::prove(
+    let (proof, P, P_hat, _y) = Pi_NULLITY_Proof::prove(
       &gens,
       transcript,
       random_tape,
@@ -206,7 +205,7 @@ impl Pi_cs_Proof {
     
     self.Py.append_to_transcript(b"Py", transcript);
 
-    let c = transcript.challenge_scalar(b"c");
+    let _c = transcript.challenge_scalar(b"c");
     
 
     return self.proof.verify(
@@ -226,14 +225,11 @@ impl Pi_cs_Proof {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use rand::rngs::OsRng;
   use crate::scalar::ScalarFromPrimitives;
   
   #[test]
   fn check_pi_cs_proof_vitalik() {
     // x^3+x+5=35, solution: x=3
-    let mut csprng: OsRng = OsRng;
-
     let s = 1; //output number. Here is `~out`.
     let nx = 1;
     let m = 2;

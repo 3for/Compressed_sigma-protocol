@@ -157,8 +157,6 @@ mod tests {
     use crate::polynomial::lagrange::*;
     use rand_core::{CryptoRng, RngCore};
     use crate::scalar::{Scalar, ScalarFromPrimitives};
-    use std::cmp::max;
-    use num_traits::Zero;
     use rand::rngs::OsRng;
     
     #[test]

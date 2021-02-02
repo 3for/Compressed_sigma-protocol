@@ -1,5 +1,5 @@
 use crate::polynomial::Field;
-use std::{borrow::Cow, convert::TryInto, convert::TryFrom, vec::Vec};
+use std::{borrow::Cow, vec::Vec};
 use DenseOrSparsePolynomial::*;
 use crate::polynomial::{Polynomial, UVPolynomial};
 use num_traits::Zero;

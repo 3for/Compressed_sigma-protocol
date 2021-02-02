@@ -194,7 +194,6 @@ mod tests {
     let mut y_vec: Vec<Scalar> = Vec::new();
     for i in 0..s {
       let x_vec = &x_matrix[i];
-      let gamma = gamma_vec[i];
       let y = scalar_math::compute_linearform(&l_vec, &x_vec);
       y_vec.push(y);
     }

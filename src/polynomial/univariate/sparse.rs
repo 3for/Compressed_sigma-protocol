@@ -4,7 +4,7 @@ use num_traits::{Zero};
 use std::ops::{Add, AddAssign, Neg, SubAssign};
 use std::collections::BTreeMap;
 use crate::polynomial::{Polynomial, UVPolynomial};
-use crate::polynomial::univariate::{DenseOrSparsePolynomial, DensePolynomial};
+use crate::polynomial::univariate::{DensePolynomial};
 
 /// Stores a sparse polynomial in coefficient form.
 #[derive(Clone, PartialEq, Eq, Default)]

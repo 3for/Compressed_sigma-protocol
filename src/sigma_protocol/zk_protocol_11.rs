@@ -1,6 +1,6 @@
 use super::super::transcript::{ProofTranscript, AppendToTranscript};
 use super::super::scalar::Scalar;
-use super::super::group::{CompressedGroup, CompressedGroupExt, GroupElement, VartimeMultiscalarMul};
+use super::super::group::{CompressedGroup};
 use merlin::Transcript;
 use super::super::random::RandomTape;
 use super::super::commitments::{Commitments};
@@ -32,7 +32,6 @@ impl Pi_r_Proof {
     gens: &DotProductProofGens,
     transcript: &mut Transcript,
     random_tape: &mut RandomTape,
-    x_vec: &[Scalar],
     y_vec_raw: &[Scalar],
     secret_out_vec: &[Scalar],
     alpha_vec: &[(Scalar, Scalar)],
@@ -41,7 +40,6 @@ impl Pi_r_Proof {
     transcript.append_protocol_name(Pi_r_Proof::protocol_name());
 
     let n = gens.gens_n.n;
-    let nx = x_vec.len();
     let m = alpha_vec.len();
     let s = secret_out_vec.len();
 
@@ -140,7 +138,7 @@ impl Pi_r_Proof {
       assert_eq!(scalar_math::compute_linearform(&l_matrix_new[i], &y_vec), Scalar::zero());
     }
 
-    let (proof, P, P_hat, y) = Pi_NULLITY_Proof::prove(
+    let (proof, P, P_hat, _y) = Pi_NULLITY_Proof::prove(
       &gens,
       transcript,
       random_tape,
@@ -174,8 +172,7 @@ impl Pi_r_Proof {
     
     self.Py.append_to_transcript(b"Py", transcript);
 
-    let c = transcript.challenge_scalar(b"c");
-    
+    let _c = transcript.challenge_scalar(b"c");
 
     return self.proof.verify(
       n,
@@ -194,15 +191,10 @@ impl Pi_r_Proof {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use rand::rngs::OsRng;
   use crate::scalar::ScalarFromPrimitives;
   
   #[test]
   fn check_pi_r_rangeproof() {
-    // x^3+x+5=35, solution: x=3
-    let mut csprng: OsRng = OsRng;
-
-
     let secret = 4242344947u64; //prove lie in the range [0, 2^64]
     let s = 1; // secret number.
     let range = 64;
@@ -237,60 +229,15 @@ mod tests {
       &gens,
       &mut prover_transcript,
       &mut random_tape,
-      &x_vec,
       &y_vec_raw,
       &secret_out_vec,
       &alpha_vec,
-      &l_matrix,
-    );
-    ////////
-
-    
-    /*let x_vec: Vec<Scalar> =[(3 as usize).to_scalar()].to_vec();
-    let out_vec: Vec<Scalar> =[(35 as usize).to_scalar()].to_vec();
-    let mut y_vec_raw: Vec<Scalar> = x_vec.clone(); // [x,gamma_1,gamma_2, one]
-    y_vec_raw.push((9 as usize).to_scalar()); // gamma_1, same as h1
-    y_vec_raw.push((27 as usize).to_scalar()); // gamma_2, same as h2
-    y_vec_raw.push(Scalar::one());
-
-    // construct linear form for alpha_1,alpha_2,beta_1,beta_2
-    let u1 = [Scalar::one(), Scalar::zero(), Scalar::zero(), Scalar::zero()].to_vec();
-    let u2 = [Scalar::zero(), Scalar::one(), Scalar::zero(), Scalar::zero()].to_vec();
-    let v1 = [Scalar::one(), Scalar::zero(), Scalar::zero(), Scalar::zero()].to_vec();
-    let v2 = [Scalar::one(), Scalar::zero(), Scalar::zero(), Scalar::zero()].to_vec();
-    l_matrix.push(u1);
-    l_matrix.push(u2);
-    l_matrix.push(v1);
-    l_matrix.push(v2);
-
-     // construct linear form for `~out=gamma_2+x+5`. all ADD and const MUL gate.
-    let lc = [Scalar::one(), Scalar::zero(), Scalar::one(), (5 as usize).to_scalar()].to_vec();
-    l_matrix.push(lc);
-
-    let mut alpha_vec: Vec<(Scalar, Scalar)> = Vec::new();
-    let mut beta_vec: Vec<(Scalar, Scalar)> = Vec::new();
-    alpha_vec.push((Scalar::one(), (3 as usize).to_scalar()));
-    alpha_vec.push(((2 as usize).to_scalar(), (9 as usize).to_scalar()));
-    beta_vec.push((Scalar::one(), (3 as usize).to_scalar()));
-    beta_vec.push(((2 as usize).to_scalar(), (3 as usize).to_scalar()));
-
-    let mut random_tape = RandomTape::new(b"proof");
-    let mut prover_transcript = Transcript::new(b"example");
-    let (proof, l_matrix_new) = Pi_r_Proof::prove(
-      &gens,
-      &mut prover_transcript,
-      &mut random_tape,
-      &x_vec,
-      &y_vec_raw,
-      &out_vec,
-      &alpha_vec,
-      &beta_vec,
       &l_matrix,
     );
 
     let mut verifier_transcript = Transcript::new(b"example");
     assert!(proof
       .verify(n, &gens, &mut verifier_transcript, &l_matrix_new)
-      .is_ok());*/
+      .is_ok());
   }
 }
