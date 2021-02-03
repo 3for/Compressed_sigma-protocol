@@ -372,9 +372,7 @@ impl<F: Field> Zero for DensePolynomial<F> {
 mod tests {
     use crate::polynomial::Polynomial;
     use crate::polynomial::univariate::*;
-    use rand_core::{CryptoRng, RngCore};
     use crate::scalar::{Scalar, ScalarFromPrimitives};
-    use std::cmp::max;
     use num_traits::Zero;
     
      #[test]

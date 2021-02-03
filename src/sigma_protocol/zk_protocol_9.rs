@@ -281,7 +281,7 @@ mod tests {
     
     let mut random_tape = RandomTape::new(b"proof");
     let mut prover_transcript = Transcript::new(b"example");
-    let (proof, P1, y1, P2, y2, l1_hat_vec, l2_hat_vec) = Pi_shell_Proof_Pure::prove(
+    let (proof, P1, y1, P2, y2, _l1_hat_vec, _l2_hat_vec) = Pi_shell_Proof_Pure::prove(
       &gens_1024,
       &gens_k1,
       &gens_k2,

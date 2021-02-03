@@ -6,11 +6,11 @@ use super::super::random::RandomTape;
 use super::super::commitments::{Commitments};
 use super::super::errors::ProofVerifyError;
 use serde::{Deserialize, Serialize};
-use super::super::nizk::*;
+use super::super::nizk::{DotProductProofGens};
 use crate::sigma_protocol::zk_protocol_7::Pi_NULLITY_Proof;
 use super::scalar_math;
 use crate::scalar::ScalarFromPrimitives;
-use crate::polynomial::lagrange::*;
+use crate::polynomial::lagrange::{LagrangePolynomialLinear};
 use crate::polynomial::Polynomial;
 
 // // Protocol 8 in the paper: Compressed Proof of Knowledge $\Pi_cs$ 
@@ -198,7 +198,7 @@ mod tests {
     let secret = 4242344947u64; //prove lie in the range [0, 2^64]
     let s = 1; // secret number.
     let range = 64;
-    let n = ((2 * range + 3 + s + 1) as usize).next_power_of_two() - 1;;
+    let n = ((2 * range + 3 + s + 1) as usize).next_power_of_two() - 1;
 
     let gens = DotProductProofGens::new(n, b"test");
 

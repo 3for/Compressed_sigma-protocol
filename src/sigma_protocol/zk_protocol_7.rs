@@ -5,7 +5,7 @@ use merlin::Transcript;
 use super::super::random::RandomTape;
 use super::super::errors::ProofVerifyError;
 use serde::{Deserialize, Serialize};
-use super::super::nizk::*;
+use super::super::nizk::{DotProductProofGens};
 use crate::sigma_protocol::zk_protocol_5::Pi_c_Proof;
 use super::scalar_math;
 

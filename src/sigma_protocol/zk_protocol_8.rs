@@ -6,11 +6,11 @@ use super::super::random::RandomTape;
 use super::super::commitments::{Commitments};
 use super::super::errors::ProofVerifyError;
 use serde::{Deserialize, Serialize};
-use super::super::nizk::*;
+use super::super::nizk::{DotProductProofGens};
 use crate::sigma_protocol::zk_protocol_7::Pi_NULLITY_Proof;
 use super::scalar_math;
 use crate::scalar::ScalarFromPrimitives;
-use crate::polynomial::lagrange::*;
+use crate::polynomial::lagrange::{LagrangePolynomialLinear};
 use crate::polynomial::Polynomial;
 
 // // Protocol 8 in the paper: Compressed Proof of Knowledge $\Pi_cs$ 

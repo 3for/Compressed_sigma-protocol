@@ -6,7 +6,7 @@ use super::super::random::RandomTape;
 use super::super::commitments::{Commitments, MultiCommitGens};
 use super::super::errors::ProofVerifyError;
 use serde::{Deserialize, Serialize};
-use super::super::nizk::*;
+use super::super::nizk::{DotProductProofGens};
 use crate::math::Math;
 use crate::nizk::bullet::BulletReductionProof;
 use crate::nizk::nozk_noinv_bullet::NoZKNoInvBulletReductionProof;
@@ -240,6 +240,8 @@ impl Pi_2_Proof_hyraxZK {
 mod tests {
   use super::*;
   use rand::rngs::OsRng;
+  use super::super::scalar_math;
+
   #[test]
   fn check_pi_2_proof() {
     let mut csprng: OsRng = OsRng;
@@ -250,7 +252,7 @@ mod tests {
 
     let l: Vec<Scalar> = (0..n).map(|_i| Scalar::random(&mut csprng)).collect();
     let z: Vec<Scalar> = (0..n).map(|_i| Scalar::random(&mut csprng)).collect();
-    let y = DotProductProof::compute_dotproduct(&l, &z);
+    let y = scalar_math::compute_linearform(&l, &z);
 
     let r_z = Scalar::random(&mut csprng);
 

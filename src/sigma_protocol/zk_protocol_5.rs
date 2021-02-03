@@ -6,7 +6,7 @@ use super::super::random::RandomTape;
 use super::super::commitments::{MultiCommitGens};
 use super::super::errors::ProofVerifyError;
 use serde::{Deserialize, Serialize};
-use super::super::nizk::*;
+use super::super::nizk::{DotProductProofGens};
 use crate::sigma_protocol::zk_basic_protocol_2::Pi_0_Proof;
 use crate::sigma_protocol::nozk_protocol_3::Pi_1_Proof;
 use crate::sigma_protocol::nozk_protocol_4::Pi_2_Proof;
@@ -150,6 +150,7 @@ impl Pi_c_Proof {
 mod tests {
   use super::*;
   use rand::rngs::OsRng;
+  use super::super::scalar_math;
   
   #[test]
   fn check_pi_c_proof() {
@@ -161,7 +162,7 @@ mod tests {
 
     let l: Vec<Scalar> = (0..n).map(|_i| Scalar::random(&mut csprng)).collect();
     let z: Vec<Scalar> = (0..n).map(|_i| Scalar::random(&mut csprng)).collect();
-    let y = DotProductProof::compute_dotproduct(&l, &z);
+    let y = scalar_math::compute_linearform(&l, &z);
 
     let r_z = Scalar::random(&mut csprng);
 

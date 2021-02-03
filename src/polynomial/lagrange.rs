@@ -154,9 +154,8 @@ impl<F: Field + std::cmp::PartialEq> LagrangePolynomialLinear<F> {
 
 #[cfg(test)]
 mod tests {
-    use crate::polynomial::lagrange::*;
-    use rand_core::{CryptoRng, RngCore};
-    use crate::scalar::{Scalar, ScalarFromPrimitives};
+    use super::*;
+    use crate::scalar::{Scalar};
     use rand::rngs::OsRng;
     
     #[test]

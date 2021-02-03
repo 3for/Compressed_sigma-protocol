@@ -6,7 +6,7 @@ use super::super::random::RandomTape;
 use super::super::commitments::{MultiCommitGens};
 use super::super::errors::ProofVerifyError;
 use serde::{Deserialize, Serialize};
-use super::super::nizk::*;
+use super::super::nizk::{DotProductProofGens};
 use crate::sigma_protocol::zk_amortized_protocol_2::Pi_0_Am_Proof;
 use crate::sigma_protocol::nozk_protocol_3::Pi_1_Proof;
 use crate::sigma_protocol::nozk_protocol_4::Pi_2_Proof;
@@ -54,7 +54,7 @@ impl Pi_c_Am_Proof {
       &y_vec,
     );
 
-    let (proof_1, P_hat, y_hat, L_tilde, z_hat, G_hat_vec) = Pi_1_Proof::mod_prove(
+    let (proof_1, P_hat, _y_hat, L_tilde, z_hat, G_hat_vec) = Pi_1_Proof::mod_prove(
       &gens.gens_n,
       transcript,
       &z_vec,
@@ -142,7 +142,7 @@ impl Pi_c_Am_Proof {
     let Q = (GroupElement::vartime_multiscalar_mul(
         c_0_vec.clone(),
         P_depressed_vec,
-      ) + self.proof_0.A.unpack()? + c_1 * y_hat * gens.gens_1.G[0]).compress();
+      ) + (c_1 * y_hat) * gens.gens_1.G[0] + self.proof_0.A.unpack()?).compress();
 
     let mut G_hat_vec = gens.gens_n.G.clone();
     G_hat_vec.push(gens.gens_n.h);
